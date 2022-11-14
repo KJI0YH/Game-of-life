@@ -1,27 +1,16 @@
 drawFreq	=	10
 prevTime	dd	?
 
-cellSize	dd	?
-cellRect	RECT
-
-screenRowCount	dd	defCellCount
-screenColCount	dd	defCellCount
+screenRowCount	dd	defaultCellCount
+screenColCount	dd	defaultCellCount
 screenRowStart	dd	0
 screenColStart	dd	0
-screenRowPixel	dd	0
-screenColPixel	dd	0
-
-defCellCount	=	9
-
-colorBack	=	00_FF_FF_FFh
-colorAlive	=	00_00_00_00h
-colorDead	=	00_FF_FF_FFh
+rowPixelShift	dd	0
+colPixelShift	dd	0
 
 hbrBack 	dd	?
 hbrAlive	dd	?
 hbrDead 	dd	?
-
-GRID_VISIBLE	dd	1
 
 proc Draw uses ebx esi edi,\
      hWnd, hdcBack, clientRect
@@ -48,16 +37,16 @@ proc Draw uses ebx esi edi,\
 
 	; Draw grid
 	cmp    [GRID_VISIBLE], 1
-	jne	@F
+	jne    .DrawCells
+
+.DrawGrid:
 	stdcall DrawGrid, [hdcBack], clientRect.left, [cellSize]
-@@:
+
+.DrawCells:
 
 	; Draw cell
-	stdcall DrawCell, [hdcBack], 0, 0
-	stdcall DrawCell, [hdcBack], 5, 5
-	stdcall DrawCell, [hdcBack], 5, 16
-	stdcall DrawCell, [hdcBack], 3, 0
-	stdcall DrawCell, [hdcBack], 0, 3
+       ; stdcall DrawCells, [hdcBack]
+       ; stdcall  DrawCell, [hdcBack], 8, 15
 
 
 .SkipDraw:
@@ -73,15 +62,14 @@ proc Draw uses ebx esi edi,\
 
 endp
 
-; In: hdcBack - buffer for drawing
-;     clientRect - client rectangle
-;     cellSize - size of the cell
-; Out: drawing a grid
+; Draw field grid
+; IN:
+;	hdcBack - back buffer for drawing
 proc DrawGrid uses ebx esi edi,\
-     hdcBack, clientRect, cellSize
+     hdcBack
 
 	; Draw grid rows
-	mov	edi, [screenRowPixel]
+	mov	edi, [rowPixelShift]
 .Rows:
 	invoke	MoveToEx, [hdcBack], 0, edi, 0
 	invoke	LineTo, [hdcBack], [clientRect.right], edi
@@ -90,7 +78,7 @@ proc DrawGrid uses ebx esi edi,\
 	jl	.Rows
 
 	; Draw grid cols
-	mov    edi, [screenColPixel]
+	mov    edi, [colPixelShift]
 .Cols:
 	invoke	MoveToEx, [hdcBack], edi, 0, 0
 	invoke	LineTo, [hdcBack], edi, [clientRect.bottom]
@@ -101,9 +89,12 @@ proc DrawGrid uses ebx esi edi,\
 	ret
 endp
 
-; In: clientRect - client rectangle
-;     cellCount - the number of cell in one row or col
-; Out: size of the sell in pixels
+; Sets the size of the cell so that the number of cells fits into the screen
+; IN:
+;	clientRect - client rectangle
+;	cellCount - the number of cell in one row or col
+; OUT:
+;	size of the sell in pixels
 proc SetCellSize uses ebx esi edi,\
      clientRect, cellCount
 
@@ -115,23 +106,26 @@ proc SetCellSize uses ebx esi edi,\
 	ret
 endp
 
-; In:	cellSize - size of the cell in pixels
+; Gets the number of cells that will fit in this screen length
+; IN:
 ;	screenLen - screen height or width in pixels
-; Out:	number of cell in one row or col
+;	cellSize - size of the cell in pixels
+; OUT:
+;	number of cell in one row or col
 proc GetCellCount uses ebx esi edi,\
      screenLen, cellSize
 
 	mov	eax, [screenLen]
 	xor	edx, edx
 	div	[cellSize]
-
-@@:
 	ret
 endp
 
-; In: clientRect - client rectangle
-;     cellSize - size of the cell
-; Out: update number of cells in rows and cols
+; IN:
+;	clientRect - client rectangle
+;	cellSize - size of the cell
+; OUT:
+;	update number of cells in rows and cols
 proc ResizeField uses ebx esi edi,\
      clientRect, cellSize
 
@@ -139,13 +133,13 @@ proc ResizeField uses ebx esi edi,\
 
 	stdcall GetCellCount, [clientRect.bottom], esi
 	mov	[screenRowCount], eax
-	cmp	[screenRowPixel], esi
+	cmp	[rowPixelShift], esi
 	je	@F
 	inc	[screenRowCount]
 @@:
 	stdcall GetCellCount, [clientRect.right], esi
 	mov	[screenColCount], eax
-	cmp	[screenColPixel], esi
+	cmp	[colPixelShift], esi
 	je	@F
 	inc	[screenColCount]
 @@:
@@ -262,6 +256,70 @@ proc DrawCell uses ebx esi edi,\
 
 .EndProc:
 	ret
+endp
+
+proc DrawCells uses ebx esi edi,\
+     hdcBack
+
+
+	mov	esi, [screenRowStart]
+	add	esi, [screenRowCount]
+;	 dec	 esi
+.ByRows:
+	push	esi
+	mov	edi, esi
+	mov	esi, [screenColStart]
+	add	esi, [screenColCount]
+;	 dec	 esi
+.ByCols:
+	stdcall NormalizeCoords, edi, esi
+	stdcall GetCell, edi, esi
+	cmp	 eax, 0
+	je	@F
+	stdcall  DrawCell, [hdcBack], edi, esi
+
+@@:
+	dec	esi
+	cmp	esi, [screenColStart]
+	jge	.ByCols
+
+	pop	esi
+	dec	esi
+	cmp	esi, [screenRowStart]
+	jge	.ByRows
+
+	ret
+endp
+
+; Normalize pixel shift
+; IN:
+;	pixelShift - shift in pixels to normalize
+;	cellSize - size of the cell in pixels
+; OUT:
+;	normalized pixel shift
+proc NormalizePixelShift uses ebx esi edi,\
+     pixelShift, cellSize
+
+	mov	eax, [pixelShift]
+	cmp	eax, 0
+	jl	.NegativeShift
+	cmp	eax, [cellSize]
+	jl	.EndProc
+
+.PositiveShift:
+	sub	eax, [cellSize]
+	cmp	eax, [cellSize]
+	jge	.PositiveShift
+	jmp	.EndProc
+
+.NegativeShift:
+	add	eax, [cellSize]
+	cmp	eax, 0
+	jl	.NegativeShift
+
+.EndProc:
+	ret
+
 endp
 
 

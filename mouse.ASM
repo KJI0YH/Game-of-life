@@ -4,30 +4,36 @@ dragCursor	dd	?
 clickPosX	dd	?
 clickPosY	dd	?
 
-MBUTTON 	dd	0
-
-; Scroll field with mouse wheel
+; Zoom field with mouse wheel
 proc MouseWheel uses ebx esi edi,\
      wParam, lParam
 
 	mov	eax, [wParam]
 	test	eax, 80000000h
-	jz     .ScrollBack
+	jz     .ZoomOut
 
-	; Scroll forward
+.ZoomIn:
 	cmp	 [cellSize], 1
 	jle	 .EndProc
-	dec	 [cellSize]
-	dec	 [screenRowPixel]
-	dec	 [screenColPixel]
-	jmp    .EndProc
 
-.ScrollBack:
+	dec	 [cellSize]
+	dec	 [rowPixelShift]
+	dec	 [colPixelShift]
+
+	jmp	.EndProc
+
+.ZoomOut:
 	inc	[cellSize]
-	inc	[screenRowPixel]
-	inc	[screenColPixel]
+	inc	[rowPixelShift]
+	inc	[colPixelShift]
 
 .EndProc:
+
+	stdcall NormalizePixelShift, [rowPixelShift], [cellSize]
+	mov	[rowPixelShift], eax
+	stdcall NormalizePixelShift, [colPixelShift], [cellSize]
+	mov	[colPixelShift], eax
+
 	stdcall ResizeField, clientRect.left, [cellSize]
 	ret
 endp
@@ -35,22 +41,17 @@ endp
 proc MouseMove uses ebx esi edi,\
      wParam, lParam
 
-	cmp    [wParam], MK_MBUTTON
+	cmp    [wParam], DRAG_BUTTON
 	jne	.EndProc
 
 	; Dragging
 	mov	ecx, [cellSize]
 
-	; X coordinate of the cursor
-	mov	ebx, [lParam]
-	and	ebx, 0000FFFFh
-	mov	esi, ebx
+.XShift:
 
-	; Y coordinate of the cursor
-	mov	ebx, [lParam]
-	and	ebx, 0xFFFF0000
-	shr	ebx, 16
-	mov	edi, ebx
+	 ; X coordinate of the cursor
+	stdcall GET_X_LPARAM, [lParam]
+	mov	esi, eax
 
 	; Check X shift
 	sub	esi, [clickPosX]
@@ -58,49 +59,52 @@ proc MouseMove uses ebx esi edi,\
 	cmp	esi, 0
 	jl	.RightShift
 
+.LeftShift:
+
 	; Left shift
-	add	[screenColPixel], esi
-	cmp	[screenColPixel], ecx
-	jle	 @F
-	sub	[screenColPixel], ecx
-	dec	[screenColStart]
-@@:
+	add	[colPixelShift], esi
 	jmp	.YShift
 
 	; Right shift
 .RightShift:
-	add	[screenColPixel], esi
-	cmp	[screenColPixel], 0
-	jge	@F
-	add	[screenColPixel], ecx
-	inc	[screenColStart]
+	add	[colPixelShift], esi
 
 .YShift:
+
+	 ; Y coordinate of the cursor
+	stdcall GET_Y_LPARAM, [lParam]
+	mov	edi, eax
+
 	; Check Y shift
+	mov	eax, [hFieldCellCount]
 	sub	edi, [clickPosY]
 	add	[clickPosY], edi
 	cmp	edi, 0
 	jl	.BottomShift
 
-	; Top shift
-	add	[screenRowPixel], edi
-	cmp	[screenRowPixel], ecx
-	jle	@F
-	sub	[screenRowPixel], ecx
-	dec	[screenRowStart]
+.TopShift:
 
-@@:
+	; Top shift
+	add	[rowPixelShift], edi
 	jmp	.EndProc
 
 .BottomShift:
-	add	[screenRowPixel], edi
-	cmp	[screenRowPixel], 0
-	jge	@F
-	add	[screenRowPixel], ecx
-	inc	[screenRowStart]
-@@:
+
+	; Bottom shift
+	add	[rowPixelShift], edi
 
 .EndProc:
+
+	; Normalizing pixel shifts
+	stdcall NormalizePixelShift, [colPixelShift], ecx
+	mov	[colPixelShift], eax
+	stdcall NormalizePixelShift, [rowPixelShift], ecx
+	mov	[rowPixelShift], eax
+
+	lea	esi, [screenRowStart]
+	lea	edi, [screenColStart]
+	stdcall NormalizeCoords, esi, edi
+
 	ret
 endp
 
@@ -109,21 +113,18 @@ proc MButtonDown uses ebx esi edi,\
      wParam, lParam
 
 	; X coordinate of the click
-	mov	ebx, [lParam]
-	and	ebx, 0000FFFFh
-	mov	[clickPosX], ebx
+	stdcall GET_X_LPARAM, [lParam]
+	mov	[clickPosX], eax
 
 	; Y coordinate of the click
-	mov	ebx, [lParam]
-	and	ebx, 0xFFFF0000
-	shr	ebx, 16
-	mov	[clickPosY], ebx
+	stdcall GET_Y_LPARAM, [lParam]
+	mov	[clickPosY], eax
 
 	invoke LoadCursor, 0, IDC_CROSS
 	mov    [dragCursor], eax
 	invoke SetCursor, eax
 	mov    [oldCursor], eax
-	mov    [MBUTTON], 1
+	mov    [DRAG], 1
 	ret
 
 endp
@@ -133,7 +134,7 @@ proc MButtonUp uses ebx esi edi,\
      wParam, lParam
 
 	invoke	SetCursor, [oldCursor]
-	mov	[MBUTTON], 0
+	mov	[DRAG], 0
 	ret
 endp
 
@@ -141,7 +142,7 @@ endp
 proc SetCursorMove uses ebx esi edi,\
      wParam, lParam
 
-	test	 [MBUTTON], 1
+	test	 [DRAG], 1
 	jz	 @F
 	invoke	SetCursor, [dragCursor]
 	jmp	 .EndProc
@@ -152,6 +153,27 @@ proc SetCursorMove uses ebx esi edi,\
 
 .EndProc:
 	ret
+endp
+
+; Get X mouse coordinate from lParam
+proc GET_X_LPARAM uses ebx esi edi,\
+     lParam
+
+	mov	eax, [lParam]
+	and	eax, 0000FFFFh
+	ret
+
+endp
+
+; Get Y mouse coordinate from lParam
+proc GET_Y_LPARAM uses ebx esi edi,\
+     lParam
+
+	mov	eax, [lParam]
+	and	eax, 0xFFFF0000
+	shr	eax, 16
+	ret
+
 endp
 
 

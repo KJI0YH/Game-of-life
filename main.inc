@@ -19,4 +19,5 @@ end data
 	include 	"mouse.asm"
 	include 	"keys.asm"
 	include 	"logic.asm"
+	include 	"settings.asm"
 

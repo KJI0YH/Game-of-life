@@ -30,7 +30,7 @@ proc WinMain
 	mov	[hMainWindow], eax
 
 	; Hide cursor
-	invoke	ShowCursor, ebx
+	invoke	ShowCursor, [CURSOR_VISIBLE]
 
 	; Get client rectangle and DC
 	invoke	GetClientRect, [hMainWindow], clientRect
@@ -41,17 +41,19 @@ proc WinMain
 	invoke	 CreateCompatibleDC, esi
 	mov	 [hdcBack], eax
 	invoke	 CreateCompatibleBitmap, esi, [clientRect.right], [clientRect.bottom]
-	invoke	 SelectObject, [hdcBack], eax
 	mov	 [hbmBack], eax
+	invoke	 SelectObject, [hdcBack], eax
+	invoke	 ReleaseDC, ebx, esi
 
 	; Init settings
-	stdcall SetCellSize, clientRect.left, defCellCount
-	mov	[screenRowPixel], eax
-	mov	[screenColPixel], eax
+	stdcall SetCellSize, clientRect.left, defaultCellCount
+	mov	[rowPixelShift], eax
+	mov	[colPixelShift], eax
 	stdcall ResizeField, clientRect.left, eax
 	stdcall CreateBrushes
-
-	invoke	 ReleaseDC, ebx, esi
+	stdcall CreateField, [clientRect.bottom], [clientRect.right]
+;	 stdcall SetCell, 8, 15
+;	 stdcall SetCell, 8, 17
 
 	; Load effective address for the msg
 	lea	esi, [msg]
