@@ -23,6 +23,10 @@ proc CreateField uses ebx esi edi,\
 	mov	ebx, 8		; one cell = one bit
 	xor	edx, edx
 	div	ebx
+	cmp	edx, 0
+	je     @F
+	inc	eax
+@@:
 	invoke HeapAlloc, [hHeap], HEAP_ZERO_MEMORY, eax
 	mov    [hCells], eax
 	ret
@@ -79,30 +83,74 @@ proc GetCell uses ebx esi edi,\
 	ret
 endp
 
-proc NormalizeCoords uses ebx esi edi,\
-     row, col
+; Normalize pixel shift
+; IN:
+;	pixelShift - shift in pixels to normalize
+;	cellSize - size of the cell in pixels
+; OUT:
+;	normalized pixel shift
+;	return shift by rows or cols
+proc NormalizePixelShift uses ebx esi edi,\
+     pixelShift, cellSize
 
-	mov	esi, [hFieldCellCount]
-	mov	edi, [wFieldCellCount]
+	xor	eax, eax
+	mov	esi, [pixelShift]
 
-	; Normalize row
-	cmp	[row], esi
-	jle	@F
-	sub	[row], esi
-@@:
-	cmp	[row], 0
-	jge	@F
-	add	[row], esi
-@@:
+	mov	ebx, [esi]
+	cmp	ebx, 0
+	jle	.NegativeShift
+	cmp	ebx, [cellSize]
+	jle	.EndProc
 
-	; Normalize col
-	cmp    [col], edi
-	jle    @F
-	sub    [row], edi
-@@:
-	cmp	[col], 0
-	jge	@F
-	add	[col], edi
-@@:
+.PositiveShift:
+	dec	eax
+	sub	ebx, [cellSize]
+	cmp	ebx, [cellSize]
+	jge	.PositiveShift
+	jmp	.EndProc
+
+.NegativeShift:
+	inc	eax
+	add	ebx, [cellSize]
+	cmp	ebx, 0
+	jl	.NegativeShift
+
+.EndProc:
+	mov	[esi], ebx
 	ret
+
+endp
+
+; Normalize screen begin cell
+; IN:
+;	screenBegin - begin screen cell to normalize
+;	fieldCellCount - max cell count
+; OUT:
+;	normalized screen begin cell
+proc NormalizeScreenBegin uses ebx esi edi,\
+     screenBegin, fieldCellCount
+
+	mov	esi, [screenBegin]
+
+	mov	edi, [esi]
+	cmp	edi, 0
+	jl	.Negative
+	cmp	edi, [fieldCellCount]
+	jl	.EndProc
+
+.Positive:
+	sub	edi, [fieldCellCount]
+	cmp	edi, [fieldCellCount]
+	jge	.Positive
+	jmp	.EndProc
+
+.Negative:
+	add	edi, [fieldCellCount]
+	cmp	edi, 0
+	jl	.Negative
+
+.EndProc:
+	mov	[esi], edi
+	ret
+
 endp

@@ -1,10 +1,10 @@
 drawFreq	=	10
 prevTime	dd	?
 
-screenRowCount	dd	defaultCellCount
-screenColCount	dd	defaultCellCount
-screenRowStart	dd	0
-screenColStart	dd	0
+;rowScreenCount  dd	 defaultCellCount
+;colScreenCount  dd	 defaultCellCount
+rowScreenBegin	dd	0
+colScreenBegin	dd	0
 rowPixelShift	dd	0
 colPixelShift	dd	0
 
@@ -45,9 +45,7 @@ proc Draw uses ebx esi edi,\
 .DrawCells:
 
 	; Draw cell
-       ; stdcall DrawCells, [hdcBack]
-       ; stdcall  DrawCell, [hdcBack], 8, 15
-
+	stdcall DrawCells, [hdcBack]
 
 .SkipDraw:
 	lea	esi, [ps]
@@ -121,32 +119,8 @@ proc GetCellCount uses ebx esi edi,\
 	ret
 endp
 
-; IN:
-;	clientRect - client rectangle
-;	cellSize - size of the cell
 ; OUT:
-;	update number of cells in rows and cols
-proc ResizeField uses ebx esi edi,\
-     clientRect, cellSize
-
-	mov	esi, [cellSize]
-
-	stdcall GetCellCount, [clientRect.bottom], esi
-	mov	[screenRowCount], eax
-	cmp	[rowPixelShift], esi
-	je	@F
-	inc	[screenRowCount]
-@@:
-	stdcall GetCellCount, [clientRect.right], esi
-	mov	[screenColCount], eax
-	cmp	[colPixelShift], esi
-	je	@F
-	inc	[screenColCount]
-@@:
-	ret
-endp
-
-; Out: create brushes for drawing
+;	create brushes for drawing
 proc CreateBrushes uses ebx esi edi
 	invoke	CreateSolidBrush, colorBack
 	mov	[hbrBack], eax
@@ -157,7 +131,8 @@ proc CreateBrushes uses ebx esi edi
 	ret
 endp
 
-; Out: delete brushes for drawing
+; OUT:
+;	delete brushes for drawing
 proc DeleteBrushes uses ebx esi edi
 
 	invoke	DeleteObject, [hbrBack]
@@ -166,160 +141,92 @@ proc DeleteBrushes uses ebx esi edi
 	ret
 endp
 
-; In: row - row of the cell in matrix
-;     col - col of the cell in matrix
-; Out: cellRect - rectangle of the cell in screen coordinates
-proc MatrixToScreen uses ebx esi edi,\
-     row, col, cellRect
-
-	mov	esi, [cellRect]
-	mov	ebx, [cellSize]
-
-	; Shift by X from top-left corner
-	mov	ecx, [screenColPixel]
-
-	; Calculate left and right coordinates
-	mov	eax, ebx
-	mov	edi, [col]
-	sub	edi, [screenColStart]
-	mul	edi
-	add	eax, ecx
-	mov	[esi + RECT.right], eax
-	mov	[esi + RECT.left], eax
-	sub	[esi + RECT.left], ebx
-
-	; Check left border
-	cmp	[esi + RECT.left], 0
-	jge	@F
-	mov	[esi + RECT.left], 0
-
-@@:
-
-	; Check right border
-	mov	edi, [clientRect.right]
-	cmp	[esi + RECT.right], edi
-	jle	@F
-	mov	[esi + RECT.right], edi
-
-@@:
-	mov	ecx, [screenRowPixel]
-
-	; Calculate top and bottom coordinates
-	mov	eax, ebx
-	mov	edi, [row]
-	sub	edi, [screenRowStart]
-	mul	edi
-	add	eax, ecx
-	mov	[esi + RECT.bottom], eax
-	mov	[esi + RECT.top], eax
-	sub	[esi + RECT.top], ebx
-
-	; Check top border
-	cmp	[esi + RECT.top], 0
-	jge	@F
-	mov	[esi + RECT.top], 0
-
-@@:
-
-	; Check bottom border
-	mov	edi, [clientRect.bottom]
-	cmp	[esi + RECT.bottom], edi
-	jle	@F
-	mov	[esi + RECT.bottom], edi
-
-@@:
-	ret
-endp
-
-proc DrawCell uses ebx esi edi,\
-     hdcBack, row, col
+; Draw all cells on screen
+; IN:
+;	hdcBack - back buffer for drawing
+proc DrawCells uses ebx esi edi,\
+     hdcBack
 
 	locals
 		cellRect	RECT
 	endl
 
-	; Check col
-	mov	eax, [screenColStart]
-	add	eax, [screenColCount]
-	cmp	[col], eax
-	jg	.EndProc
-
-	; Check row
-	mov	eax, [screenRowStart]
-	add	eax, [screenRowCount]
-	cmp	[row], eax
-	jg	.EndProc
-
-	lea	esi, [cellRect.left]
-	stdcall MatrixToScreen, [row], [col], esi
-	invoke	FillRect, [hdcBack], esi, [hbrAlive]
-
-.EndProc:
-	ret
-endp
-
-proc DrawCells uses ebx esi edi,\
-     hdcBack
-
-
-	mov	esi, [screenRowStart]
-	add	esi, [screenRowCount]
-;	 dec	 esi
-.ByRows:
-	push	esi
-	mov	edi, esi
-	mov	esi, [screenColStart]
-	add	esi, [screenColCount]
-;	 dec	 esi
-.ByCols:
-	stdcall NormalizeCoords, edi, esi
-	stdcall GetCell, edi, esi
-	cmp	 eax, 0
-	je	@F
-	stdcall  DrawCell, [hdcBack], edi, esi
+	mov	[cellRect.top], 0
+	mov	ebx, [rowPixelShift]
+	cmp	ebx, 0
+	jne	@F
+	mov	ebx, [cellSize]
 
 @@:
-	dec	esi
-	cmp	esi, [screenColStart]
-	jge	.ByCols
+	mov	[cellRect.bottom], ebx
+	mov	edi, [rowScreenBegin]
 
-	pop	esi
-	dec	esi
-	cmp	esi, [screenRowStart]
-	jge	.ByRows
+.ByRows:
+	mov	esi, [colScreenBegin]
+
+	; Set initial left and right cell rectangle
+	mov	[cellRect.left], 0
+	mov	ebx, [colPixelShift]
+	cmp	ebx, 0
+	jne	@F
+	mov	ebx, [cellSize]
+@@:
+	mov	[cellRect.right], ebx
+
+.ByCols:
+
+	stdcall GetCell, edi, esi
+	cmp	eax, 0
+	je	.SkipDraw
+
+	; Draw cell if is alive
+	lea	ebx, [cellRect.left]
+	invoke	FillRect, [hdcBack], ebx, [hbrAlive]
+
+.SkipDraw:
+
+	; Modify left and right cell borders
+	mov	ebx, [cellRect.right]
+	mov	[cellRect.left], ebx
+	add	ebx, [cellSize]
+	cmp	ebx, [clientRect.right]
+	jle	@F
+	mov	ebx, [clientRect.right]
+
+@@:
+	mov	[cellRect.right], ebx
+
+	; Modify col count
+	inc	esi
+	cmp	esi, [wFieldCellCount]
+	jl	@F
+	mov	esi, 0
+@@:
+	; Check cols condition
+	cmp	[cellRect.left], ebx
+	jl	.ByCols
+
+	; Modify top and bottom cell borders
+	mov	ebx, [cellRect.bottom]
+	mov	[cellRect.top], ebx
+	add	ebx, [cellSize]
+	cmp	ebx, [clientRect.bottom]
+	jle	@F
+	mov	ebx, [clientRect.bottom]
+@@:
+	mov	[cellRect.bottom], ebx
+
+	inc	edi
+	cmp	edi, [hFieldCellCount]
+	jl	@F
+	mov	edi, 0
+@@:
+	; Check rows condition
+	cmp	[cellRect.top], ebx
+	jl	.ByRows
 
 	ret
 endp
 
-; Normalize pixel shift
-; IN:
-;	pixelShift - shift in pixels to normalize
-;	cellSize - size of the cell in pixels
-; OUT:
-;	normalized pixel shift
-proc NormalizePixelShift uses ebx esi edi,\
-     pixelShift, cellSize
-
-	mov	eax, [pixelShift]
-	cmp	eax, 0
-	jl	.NegativeShift
-	cmp	eax, [cellSize]
-	jl	.EndProc
-
-.PositiveShift:
-	sub	eax, [cellSize]
-	cmp	eax, [cellSize]
-	jge	.PositiveShift
-	jmp	.EndProc
-
-.NegativeShift:
-	add	eax, [cellSize]
-	cmp	eax, 0
-	jl	.NegativeShift
-
-.EndProc:
-	ret
-
-endp
 
 

@@ -29,12 +29,9 @@ proc MouseWheel uses ebx esi edi,\
 
 .EndProc:
 
-	stdcall NormalizePixelShift, [rowPixelShift], [cellSize]
-	mov	[rowPixelShift], eax
-	stdcall NormalizePixelShift, [colPixelShift], [cellSize]
-	mov	[colPixelShift], eax
+	; Normalizing pixel shifts and screen begin cells
+	stdcall NormalizeAfterMouse
 
-	stdcall ResizeField, clientRect.left, [cellSize]
 	ret
 endp
 
@@ -54,19 +51,8 @@ proc MouseMove uses ebx esi edi,\
 	mov	esi, eax
 
 	; Check X shift
-	sub	esi, [clickPosX]
+	sub	esi, [clickPosX]	; esi - mouse x delta
 	add	[clickPosX], esi
-	cmp	esi, 0
-	jl	.RightShift
-
-.LeftShift:
-
-	; Left shift
-	add	[colPixelShift], esi
-	jmp	.YShift
-
-	; Right shift
-.RightShift:
 	add	[colPixelShift], esi
 
 .YShift:
@@ -76,34 +62,14 @@ proc MouseMove uses ebx esi edi,\
 	mov	edi, eax
 
 	; Check Y shift
-	mov	eax, [hFieldCellCount]
-	sub	edi, [clickPosY]
+	sub	edi, [clickPosY]	; edi - mouse y delta
 	add	[clickPosY], edi
-	cmp	edi, 0
-	jl	.BottomShift
-
-.TopShift:
-
-	; Top shift
-	add	[rowPixelShift], edi
-	jmp	.EndProc
-
-.BottomShift:
-
-	; Bottom shift
 	add	[rowPixelShift], edi
 
 .EndProc:
 
-	; Normalizing pixel shifts
-	stdcall NormalizePixelShift, [colPixelShift], ecx
-	mov	[colPixelShift], eax
-	stdcall NormalizePixelShift, [rowPixelShift], ecx
-	mov	[rowPixelShift], eax
-
-	lea	esi, [screenRowStart]
-	lea	edi, [screenColStart]
-	stdcall NormalizeCoords, esi, edi
+	; Normalizing pixel shifts and screen begin cells
+	stdcall NormalizeAfterMouse
 
 	ret
 endp
@@ -172,6 +138,31 @@ proc GET_Y_LPARAM uses ebx esi edi,\
 	mov	eax, [lParam]
 	and	eax, 0xFFFF0000
 	shr	eax, 16
+	ret
+
+endp
+
+; Normalize pixel shifts and screen begin cell after mouse manipulations
+proc NormalizeAfterMouse uses ebx esi edi
+
+	; Normalizing row pixel shifts
+	lea	esi, [rowPixelShift]
+	stdcall NormalizePixelShift, esi, [cellSize]
+
+	; Normalizing row screen begin cell
+	add	[rowScreenBegin], eax
+	lea	esi, [rowScreenBegin]
+	stdcall NormalizeScreenBegin, esi, [hFieldCellCount]
+
+	; Normalizing col pixel shifts
+	lea	esi, [colPixelShift]
+	stdcall NormalizePixelShift, esi, [cellSize]
+
+	; Normalizing col screen begin cell
+	add	[colScreenBegin], eax
+	lea	esi, [colScreenBegin]
+	stdcall NormalizeScreenBegin, esi, [wFieldCellCount]
+
 	ret
 
 endp

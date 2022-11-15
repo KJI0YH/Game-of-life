@@ -49,11 +49,13 @@ proc WinMain
 	stdcall SetCellSize, clientRect.left, defaultCellCount
 	mov	[rowPixelShift], eax
 	mov	[colPixelShift], eax
-	stdcall ResizeField, clientRect.left, eax
 	stdcall CreateBrushes
 	stdcall CreateField, [clientRect.bottom], [clientRect.right]
-;	 stdcall SetCell, 8, 15
-;	 stdcall SetCell, 8, 17
+;	 stdcall CreateField, 9, 16
+	stdcall SetCell, 0, 0
+	stdcall SetCell, 0, 15
+	stdcall SetCell, 8, 0
+	stdcall SetCell, 8, 15
 
 	; Load effective address for the msg
 	lea	esi, [msg]
@@ -125,15 +127,15 @@ proc WindowProc uses ebx,\
 .KeyDown:
 	mov	eax, [wParam]
 	JumpIf	VK_ESCAPE,	.Destroy
-	JumpIf	0x43,		.ShowCursor  ; C key
-	JumpIf	0x47,		.ShowGrid    ; G key
+	JumpIf	0x43,		..ShowCursor  ; C key
+	JumpIf	0x47,		..ShowGrid    ; G key
 	jmp	.Default
 
-.ShowCursor:
+..ShowCursor:
 	stdcall CursorVisible
 	jmp    .ReturnZero
 
-.ShowGrid:
+..ShowGrid:
 	stdcall GridVisible
 	jmp	.ReturnZero
 
