@@ -152,7 +152,7 @@ proc NormalizeAfterMouse uses ebx esi edi
 	; Normalizing row screen begin cell
 	add	[rowScreenBegin], eax
 	lea	esi, [rowScreenBegin]
-	stdcall NormalizeScreenBegin, esi, [hFieldCellCount]
+	stdcall NormalizeCoord, esi, [hFieldCellCount]
 
 	; Normalizing col pixel shifts
 	lea	esi, [colPixelShift]
@@ -161,7 +161,7 @@ proc NormalizeAfterMouse uses ebx esi edi
 	; Normalizing col screen begin cell
 	add	[colScreenBegin], eax
 	lea	esi, [colScreenBegin]
-	stdcall NormalizeScreenBegin, esi, [wFieldCellCount]
+	stdcall NormalizeCoord, esi, [wFieldCellCount]
 
 	ret
 

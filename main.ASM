@@ -6,6 +6,7 @@ className	db		"Game of life", 0
 clientRect	RECT
 hdcBack 	dd		?
 hbmBack 	dd		?
+TimerID 	dd		42
 
 
 proc WinMain
@@ -19,6 +20,7 @@ proc WinMain
 
 	invoke	GetTickCount
 	mov	[prevTime], eax
+	mov	[prevStep], eax
 
 	invoke	LoadCursor, 0, IDC_HAND
 	mov	[wndClass.hCursor], eax
@@ -52,10 +54,20 @@ proc WinMain
 	stdcall CreateBrushes
 	stdcall CreateField, [clientRect.bottom], [clientRect.right]
 ;	 stdcall CreateField, 9, 16
-	stdcall SetCell, 0, 0
-	stdcall SetCell, 0, 15
-	stdcall SetCell, 8, 0
-	stdcall SetCell, 8, 15
+;	 stdcall SetCell, 0, 0, [hCells]
+;	 stdcall SetCell, 0, 15, [hCells]
+;	 stdcall SetCell, 8, 0, [hCells]
+;	 stdcall SetCell, 8, 15, [hCells]
+
+	stdcall SetCell, 3, 6, [hCells]
+	stdcall SetCell, 4, 7, [hCells]
+	stdcall SetCell, 5, 7, [hCells]
+	stdcall SetCell, 5, 6, [hCells]
+	stdcall SetCell, 5, 5, [hCells]
+
+	stdcall SetCell, 0, 0, [hCells]
+	stdcall SetCell, 0, 1, [hCells]
+	stdcall SetCell, 0, 2, [hCells]
 
 	; Load effective address for the msg
 	lea	esi, [msg]

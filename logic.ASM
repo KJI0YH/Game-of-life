@@ -1,7 +1,9 @@
 hHeap		     dd      ?
 hCells		     dd      ?
+hBackCells	     dd      ?
 hFieldCellCount      dd      ?
 wFieldCellCount      dd      ?
+cellsBufferSize      dd      ?
 
 ; Allocate memory for game field
 ; In:
@@ -27,8 +29,11 @@ proc CreateField uses ebx esi edi,\
 	je     @F
 	inc	eax
 @@:
+	mov	[cellsBufferSize], eax
 	invoke HeapAlloc, [hHeap], HEAP_ZERO_MEMORY, eax
 	mov    [hCells], eax
+	invoke HeapAlloc, [hHeap], HEAP_ZERO_MEMORY, [cellsBufferSize]
+	mov    [hBackCells], eax
 	ret
 endp
 
@@ -36,8 +41,9 @@ endp
 ; IN:
 ;	row - cell row in field
 ;	col - cell col in field
+;	hCells - handle to cells memory
 proc SetCell uses ebx esi edi,\
-     row, col
+     row, col, hCells
 
 	mov	eax, [row]
 	mul	[wFieldCellCount]
@@ -59,11 +65,12 @@ endp
 ; IN:
 ;	row - cell row in field
 ;	col - cell col in field
+;	hCells - handle to cells memory
 ; OUT:
 ;	return zero if cell is 0
 ;	return not zero if cell is 1
 proc GetCell uses ebx esi edi,\
-     row, col
+     row, col, hCells
 
 	mov	eax, [row]
 	mul	[wFieldCellCount]
@@ -121,36 +128,181 @@ proc NormalizePixelShift uses ebx esi edi,\
 
 endp
 
-; Normalize screen begin cell
+; Normalize cell coordinate
 ; IN:
-;	screenBegin - begin screen cell to normalize
+;	pCoord - pointer to cell coordinate (row or col) to normalize
 ;	fieldCellCount - max cell count
 ; OUT:
-;	normalized screen begin cell
-proc NormalizeScreenBegin uses ebx esi edi,\
-     screenBegin, fieldCellCount
+;	normalized cell coord
+;	eax - normalized value
+proc NormalizeCoord uses ebx esi edi,\
+     pCoord, fieldCellCount
 
-	mov	esi, [screenBegin]
+	mov	esi, [pCoord]
 
-	mov	edi, [esi]
-	cmp	edi, 0
+	mov	eax, [esi]
+	cmp	eax, 0
 	jl	.Negative
-	cmp	edi, [fieldCellCount]
+	cmp	eax, [fieldCellCount]
 	jl	.EndProc
 
 .Positive:
-	sub	edi, [fieldCellCount]
-	cmp	edi, [fieldCellCount]
+	sub	eax, [fieldCellCount]
+	cmp	eax, [fieldCellCount]
 	jge	.Positive
 	jmp	.EndProc
 
 .Negative:
-	add	edi, [fieldCellCount]
-	cmp	edi, 0
+	add	eax, [fieldCellCount]
+	cmp	eax, 0
 	jl	.Negative
 
 .EndProc:
-	mov	[esi], edi
+	mov	[esi], eax
 	ret
 
 endp
+
+; Calculate the next generation of the game
+; IN:
+;	hCells - handle to memory with current generation
+;	hBackCells - handle to memory with next generation
+; OUT:
+;	hCells - handle to memory with new generation
+proc NextGeneration uses ebx esi edi,\
+    hCells, hBackCells
+
+	; Set back memory to zero
+	mov	ecx, [cellsBufferSize]
+	xor	eax, eax
+	cld
+	mov	edi, [hBackCells]
+	repnz stosb
+
+	xor	esi, esi
+
+.ByRows:
+
+	xor	edi, edi
+
+.ByCols:
+
+	stdcall  IsAlive, esi, edi, [hCells]
+	test	 eax, eax
+	jz	 @F
+	stdcall SetCell, esi, edi, [hBackCells]
+@@:
+	inc	edi
+	cmp	edi, [wFieldCellCount]
+	jl	.ByCols
+
+	inc	esi
+	cmp	esi, [hFieldCellCount]
+	jl	.ByRows
+
+	ret
+
+endp
+
+; Check game rules and determine cell state
+; IN:
+;	row - row of the cell
+;	col - col of the cell
+;	hCell - handle to memory with cells
+; OUT:
+;	return not zero if cell is alive, else return 0
+proc IsAlive uses ebx esi edi,\
+     row, col, hCells
+
+	xor	ebx, ebx
+	stdcall GetCell, [row], [col], [hCells]
+	push	eax
+@@:
+	dec	[row]
+	lea	esi, [row]
+	stdcall NormalizeCoord, esi, [hFieldCellCount]
+
+	dec	[col]
+	lea	esi, [col]
+	stdcall NormalizeCoord, esi, [wFieldCellCount]
+	mov	edi, [col]
+
+	mov	ecx, 3
+.ByRows:
+	push	ecx
+	mov	ecx, 3
+	mov	[col], edi
+
+.ByCols:
+	push	ecx
+	stdcall GetCell, [row], [col], [hCells]
+	test	eax, eax
+	jz	@F
+	inc	ebx
+@@:
+	inc	[col]
+	lea	esi, [col]
+	stdcall NormalizeCoord, esi, [wFieldCellCount]
+	pop	ecx
+	loop	.ByCols
+
+	inc	[row]
+	lea	esi, [row]
+	stdcall NormalizeCoord, esi, [hFieldCellCount]
+	pop	ecx
+	loop	.ByRows
+
+	pop	eax
+	test	eax, eax
+	jz	.IsDead
+	dec	ebx
+	jmp	.IsAlive
+
+.IsDead:
+	cmp	ebx, 3
+	jne	.EndProc
+	mov	eax, ebx
+	jmp	.EndProc
+.IsAlive:
+	cmp	ebx, 3
+	jg	.Zero
+	cmp	ebx, 2
+	jl	.Zero
+	mov	eax, ebx
+	jmp	.EndProc
+
+.Zero:
+	xor	eax, eax
+
+.EndProc:
+	ret
+
+endp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

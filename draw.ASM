@@ -1,8 +1,10 @@
-drawFreq	=	10
+drawFreq	=	15
 prevTime	dd	?
 
-;rowScreenCount  dd	 defaultCellCount
-;colScreenCount  dd	 defaultCellCount
+stepFreq	=	50
+prevStep	dd	?
+
+
 rowScreenBegin	dd	0
 colScreenBegin	dd	0
 rowPixelShift	dd	0
@@ -28,6 +30,11 @@ proc Draw uses ebx esi edi,\
 	add    eax, [prevTime]
 	mov    [prevTime], eax
 
+	stdcall NextGeneration, [hCells], [hBackCells]
+	mov	esi, [hCells]
+	xchg	esi, [hBackCells]
+	xchg	esi, [hCells]
+
 	invoke	GetUpdateRect, [hWnd], 0, 0
 	test	eax, eax
 	jz	.EndProc
@@ -45,7 +52,7 @@ proc Draw uses ebx esi edi,\
 .DrawCells:
 
 	; Draw cell
-	stdcall DrawCells, [hdcBack]
+	stdcall DrawCells, [hdcBack], [hCells]
 
 .SkipDraw:
 	lea	esi, [ps]
@@ -144,8 +151,9 @@ endp
 ; Draw all cells on screen
 ; IN:
 ;	hdcBack - back buffer for drawing
+;	hCells - handle to cells memory
 proc DrawCells uses ebx esi edi,\
-     hdcBack
+     hdcBack, hCells
 
 	locals
 		cellRect	RECT
@@ -175,7 +183,7 @@ proc DrawCells uses ebx esi edi,\
 
 .ByCols:
 
-	stdcall GetCell, edi, esi
+	stdcall GetCell, edi, esi, [hCells]
 	cmp	eax, 0
 	je	.SkipDraw
 
