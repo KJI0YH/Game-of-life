@@ -6,8 +6,6 @@ className	db		"Game of life", 0
 clientRect	RECT
 hdcBack 	dd		?
 hbmBack 	dd		?
-TimerID 	dd		42
-
 
 proc WinMain
 
@@ -53,17 +51,17 @@ proc WinMain
 	mov	[colPixelShift], eax
 	stdcall CreateBrushes
 	stdcall CreateField, [clientRect.bottom], [clientRect.right]
-;	 stdcall CreateField, 500, 500
+;	 stdcall CreateField, 9, 16
 
-	stdcall SetCell, 3, 6, [hCells]
-	stdcall SetCell, 4, 7, [hCells]
-	stdcall SetCell, 5, 7, [hCells]
-	stdcall SetCell, 5, 6, [hCells]
+;	 stdcall SetCell, 3, 6, [hCells]
+ ;	 stdcall SetCell, 4, 7, [hCells]
+  ;	 stdcall SetCell, 5, 7, [hCells]
+   ;	 stdcall SetCell, 5, 6, [hCells]
+    ;	 stdcall SetCell, 5, 5, [hCells]
+
 	stdcall SetCell, 5, 5, [hCells]
-
-	stdcall SetCell, 0, 0, [hCells]
-	stdcall SetCell, 0, 1, [hCells]
-	stdcall SetCell, 0, 2, [hCells]
+	stdcall SetCell, 5, 6, [hCells]
+	stdcall SetCell, 5, 7, [hCells]
 
 	; Load effective address for the msg
 	lea	esi, [msg]
@@ -113,7 +111,7 @@ proc WindowProc uses ebx,\
 	jmp    .ReturnZero
 
 .MouseMove:
-	stdcall MouseMove, [wParam], [lParam], [hWnd], [hdcBack], [clientRect]
+	stdcall MouseMove, [wParam], [lParam]
 	jmp	.ReturnZero
 
 .LButtonDown:

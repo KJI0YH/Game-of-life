@@ -52,8 +52,8 @@ proc MouseMove uses ebx esi edi,\
 	mov	[y], eax
 
 	mov	eax, [wParam]
-	JumpIf	DRAG_BUTTON,	.Drag
-	JumpIf	FILL_BUTTON,	.Fill
+	JumpIf	FIELD_DRAG_BUTTON,    .Drag
+	JumpIf	FILL_DRAG_BUTTON,     .Fill
 	jmp	.EndProc
 
 .Drag:
@@ -75,24 +75,24 @@ proc MouseMove uses ebx esi edi,\
 	sub	edi, [clickPosY]	; edi - mouse y delta
 	add	[clickPosY], edi
 	add	[rowPixelShift], edi
-	jmp	.EndProc
+	jmp	.Normalize
 
 .Fill:
-
 	stdcall MouseToField, [y], [rowScreenBegin], [rowPixelShift]
 	mov	edi, eax
 	stdcall MouseToField, [x], [colScreenBegin], [colPixelShift]
 	mov	esi, eax
 	stdcall GetCell, edi, esi, [hCells]
 	test	eax, eax
-	jnz	.EndProc
+	jne	.EndProc
 	stdcall SetCell, edi, esi, [hCells]
 	jmp	.EndProc
 
-.EndProc:
-
+.Normalize:
 	; Normalizing pixel shifts and screen begin cells
 	stdcall NormalizeAfterMouse
+
+.EndProc:
 
 	ret
 endp

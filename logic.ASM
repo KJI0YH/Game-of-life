@@ -17,18 +17,14 @@ proc CreateField uses ebx esi edi,\
 
 	mov	eax, [hCellCount]
 	mov	[hFieldCellCount], eax
+	dec	[hFieldCellCount]
 	mov	ebx, [wCellCount]
 	mov	[wFieldCellCount], ebx
+	dec	[wFieldCellCount]
 
 	; Calculate amount of memory that we need
 	mul	ebx
-	mov	ebx, 8		; one cell = one bit
-	xor	edx, edx
-	div	ebx
-	cmp	edx, 0
-	je     @F
-	inc	eax
-@@:
+
 	mov	[cellsBufferSize], eax
 	invoke HeapAlloc, [hHeap], HEAP_ZERO_MEMORY, eax
 	mov    [hCells], eax
@@ -53,16 +49,10 @@ proc SetCell uses ebx esi edi ecx ebx,\
 	mov	eax, [row]
 	mul	[wFieldCellCount]
 	add	eax, [col]
-	mov	ebx, 8
-	xor	edx, edx
-	div	ebx		; now eax - number of full bytes
-				;     edx - number of bit in byte
-	mov	cl, dl
-	mov	bl, 1000_0000b
-	shr	bl, cl
-	mov	esi, [hCells]
-	add	esi, eax
-	xor	byte [esi], bl
+
+	add	eax, [hCells]
+	xor	byte [eax], 1
+
 	ret
 endp
 
@@ -74,7 +64,7 @@ endp
 ; OUT:
 ;	return zero if cell is 0
 ;	return not zero if cell is 1
-proc GetCell uses ebx esi edi ecx edx,\
+proc GetCell uses ebx esi edi,\
      row, col, hCells
 
 	lea	esi, [row]
@@ -85,17 +75,11 @@ proc GetCell uses ebx esi edi ecx edx,\
 	mov	eax, [row]
 	mul	[wFieldCellCount]
 	add	eax, [col]
-	mov	ebx, 8
-	xor	edx, edx
-	div	ebx
-	mov	cl, dl
-	mov	bl, 1000_0000b
-	shr	bl, cl
-	mov	esi, [hCells]
-	add	esi, eax
+
+	add	eax, [hCells]
+	mov	ebx, eax
 	xor	eax, eax
-	mov	al, byte [esi]
-	and	al, bl
+	mov	al, byte [ebx]
 
 	ret
 endp
@@ -177,100 +161,89 @@ endp
 ; IN:
 ;	hCells - handle to memory with current generation
 ;	hBackCells - handle to memory with next generation
-; OUT:
-;	hCells - handle to memory with new generation
 proc NextGeneration uses ebx esi edi,\
     hCells, hBackCells
 
-	; Set back memory to zero
-	mov	ecx, [cellsBufferSize]
-	xor	eax, eax
-	cld
-	mov	edi, [hBackCells]
-	repnz stosb
+	locals
+		vShift	dd	?
+		hShift	dd	?
+		pos	dd	?
+	endl
 
-	xor	esi, esi
-
+	mov	esi, 1
 .ByRows:
-
-	xor	edi, edi
-
+	push	esi
+	mov	edi, 1
 .ByCols:
+	pop	esi
+	mov	eax, esi
+	push	esi
+	push	edi
+	mul	[wFieldCellCount]
+	add	eax, edi		; eax - normal cell shift
+;	 mov	 [pos], eax
 
-	stdcall  IsAlive, esi, edi, [hCells]
-	test	 eax, eax
-	jz	 @F
-	stdcall SetCell, esi, edi, [hBackCells]
-@@:
+	mov	edi, [hBackCells]
+	add	edi, eax		; edi - address of the cell
+
+	mov	esi, [hCells]
+	add	esi, eax		; esi - address of the cell
+
+	xor	ebx, ebx
+	mov	eax, [wFieldCellCount]
+	neg	eax
+
+	; cmp if row == 0 then eax += H*W else
+	; cmp if row == H then eax -= H*W
+	; cmp if col == 0 then eax += W
+	; cmp if col == W then eax -= W
+
+.Top:
+	; Top neighbours
+	add	bl, byte [esi + eax - 1]
+	add	bl, byte [esi + eax]
+	add	bl, byte [esi + eax + 1]
+
+	; Middle neighbours
+	add	bl, byte [esi - 1]
+	add	bl, byte [esi + 1]
+
+	; Bottom neighbours
+	neg	eax
+	add	bl, byte [esi + eax - 1]
+	add	bl, byte [esi + eax]
+	add	bl, byte [esi + eax + 1]
+
+	mov	al, byte [esi]
+	test	al, al
+	jz	.Dead
+
+.Alive:
+	cmp	ebx, 3
+	jg	.Zero
+	cmp	ebx, 2
+	jl	.Zero
+	mov	byte [edi], 1
+	jmp	.EndCycle
+.Dead:
+	cmp	ebx, 3
+	jne	 .Zero
+	mov	byte [edi], 1
+	jmp	.EndCycle
+.Zero:
+	mov	byte [edi], 0
+
+.EndCycle:
+	pop	edi
 	inc	edi
 	cmp	edi, [wFieldCellCount]
 	jl	.ByCols
 
+	pop	esi
 	inc	esi
 	cmp	esi, [hFieldCellCount]
 	jl	.ByRows
 
-	ret
-
-endp
-
-; Check game rules and determine cell state
-; IN:
-;	row - row of the cell
-;	col - col of the cell
-;	hCell - handle to memory with cells
-; OUT:
-;	return not zero if cell is alive, else return 0
-proc IsAlive uses ebx esi edi ecx edx,\
-     row, col, hCells
-
-	mov	esi, [row]
-	mov	edi, [col]
-	dec	esi
-	dec	edi
-	mov	ebx, [col]
-	inc	ebx
-
-	xor	edx, edx
-	mov	ecx, 3
-
-.loop:
-	stdcall GetCell, esi, edi, [hCells]
-	test	eax, eax
-	jz	@F
-	inc	edx
-@@:
-	stdcall GetCell, esi, [col], [hCells]
-	test	eax, eax
-	jz	@F
-	inc	edx
-@@:
-	stdcall GetCell, esi, ebx, [hCells]
-	test	eax, eax
-	jz	@F
-	inc	edx
-@@:
-	inc	esi
-	loop	.loop
-
-	stdcall GetCell, [row], [col], [hCells]
-	test	eax, eax
-	jz	.IsDead
-
-.IsAlive:
-	cmp	edx, 4
-	jg	.Zero
-	cmp	edx, 3
-	jl	.Zero
-	jmp	.EndProc
-.IsDead:
-	cmp	edx, 3
-	jne	.EndProc
-	mov	eax, edx
-	jmp	.EndProc
-.Zero:
-	xor	eax, eax
-.EndProc:
 	ret
 
 endp
