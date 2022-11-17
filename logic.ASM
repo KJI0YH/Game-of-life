@@ -42,8 +42,13 @@ endp
 ;	row - cell row in field
 ;	col - cell col in field
 ;	hCells - handle to cells memory
-proc SetCell uses ebx esi edi,\
+proc SetCell uses ebx esi edi ecx ebx,\
      row, col, hCells
+
+	lea	esi, [row]
+	stdcall NormalizeCoord, esi, [hFieldCellCount]
+	lea	esi, [col]
+	stdcall NormalizeCoord, esi, [wFieldCellCount]
 
 	mov	eax, [row]
 	mul	[wFieldCellCount]
@@ -69,8 +74,13 @@ endp
 ; OUT:
 ;	return zero if cell is 0
 ;	return not zero if cell is 1
-proc GetCell uses ebx esi edi,\
+proc GetCell uses ebx esi edi ecx edx,\
      row, col, hCells
+
+	lea	esi, [row]
+	stdcall NormalizeCoord, esi, [hFieldCellCount]
+	lea	esi, [col]
+	stdcall NormalizeCoord, esi, [wFieldCellCount]
 
 	mov	eax, [row]
 	mul	[wFieldCellCount]
@@ -211,69 +221,55 @@ endp
 ;	hCell - handle to memory with cells
 ; OUT:
 ;	return not zero if cell is alive, else return 0
-proc IsAlive uses ebx esi edi,\
+proc IsAlive uses ebx esi edi ecx edx,\
      row, col, hCells
 
-	xor	ebx, ebx
-	stdcall GetCell, [row], [col], [hCells]
-	push	eax
-@@:
-	dec	[row]
-	lea	esi, [row]
-	stdcall NormalizeCoord, esi, [hFieldCellCount]
-
-	dec	[col]
-	lea	esi, [col]
-	stdcall NormalizeCoord, esi, [wFieldCellCount]
+	mov	esi, [row]
 	mov	edi, [col]
+	dec	esi
+	dec	edi
+	mov	ebx, [col]
+	inc	ebx
 
+	xor	edx, edx
 	mov	ecx, 3
-.ByRows:
-	push	ecx
-	mov	ecx, 3
-	mov	[col], edi
 
-.ByCols:
-	push	ecx
-	stdcall GetCell, [row], [col], [hCells]
+.loop:
+	stdcall GetCell, esi, edi, [hCells]
 	test	eax, eax
 	jz	@F
-	inc	ebx
+	inc	edx
 @@:
-	inc	[col]
-	lea	esi, [col]
-	stdcall NormalizeCoord, esi, [wFieldCellCount]
-	pop	ecx
-	loop	.ByCols
+	stdcall GetCell, esi, [col], [hCells]
+	test	eax, eax
+	jz	@F
+	inc	edx
+@@:
+	stdcall GetCell, esi, ebx, [hCells]
+	test	eax, eax
+	jz	@F
+	inc	edx
+@@:
+	inc	esi
+	loop	.loop
 
-	inc	[row]
-	lea	esi, [row]
-	stdcall NormalizeCoord, esi, [hFieldCellCount]
-	pop	ecx
-	loop	.ByRows
-
-	pop	eax
+	stdcall GetCell, [row], [col], [hCells]
 	test	eax, eax
 	jz	.IsDead
-	dec	ebx
-	jmp	.IsAlive
 
-.IsDead:
-	cmp	ebx, 3
-	jne	.EndProc
-	mov	eax, ebx
-	jmp	.EndProc
 .IsAlive:
-	cmp	ebx, 3
+	cmp	edx, 4
 	jg	.Zero
-	cmp	ebx, 2
+	cmp	edx, 3
 	jl	.Zero
-	mov	eax, ebx
 	jmp	.EndProc
-
+.IsDead:
+	cmp	edx, 3
+	jne	.EndProc
+	mov	eax, edx
+	jmp	.EndProc
 .Zero:
 	xor	eax, eax
-
 .EndProc:
 	ret
 

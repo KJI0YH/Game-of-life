@@ -53,11 +53,7 @@ proc WinMain
 	mov	[colPixelShift], eax
 	stdcall CreateBrushes
 	stdcall CreateField, [clientRect.bottom], [clientRect.right]
-;	 stdcall CreateField, 9, 16
-;	 stdcall SetCell, 0, 0, [hCells]
-;	 stdcall SetCell, 0, 15, [hCells]
-;	 stdcall SetCell, 8, 0, [hCells]
-;	 stdcall SetCell, 8, 15, [hCells]
+;	 stdcall CreateField, 500, 500
 
 	stdcall SetCell, 3, 6, [hCells]
 	stdcall SetCell, 4, 7, [hCells]
@@ -141,6 +137,7 @@ proc WindowProc uses ebx,\
 	JumpIf	VK_ESCAPE,	.Destroy
 	JumpIf	0x43,		..ShowCursor  ; C key
 	JumpIf	0x47,		..ShowGrid    ; G key
+	JumpIf	0x20,		..Pause       ; Space key
 	jmp	.Default
 
 ..ShowCursor:
@@ -149,6 +146,10 @@ proc WindowProc uses ebx,\
 
 ..ShowGrid:
 	stdcall GridVisible
+	jmp	.ReturnZero
+
+..Pause:
+	stdcall GenerationPause
 	jmp	.ReturnZero
 
 .Destroy:

@@ -30,11 +30,14 @@ proc Draw uses ebx esi edi,\
 	add    eax, [prevTime]
 	mov    [prevTime], eax
 
+	cmp	[GEN_PAUSE], 1
+	je     .SkipGeneration
 	stdcall NextGeneration, [hCells], [hBackCells]
 	mov	esi, [hCells]
 	xchg	esi, [hBackCells]
 	xchg	esi, [hCells]
 
+.SkipGeneration:
 	invoke	GetUpdateRect, [hWnd], 0, 0
 	test	eax, eax
 	jz	.EndProc

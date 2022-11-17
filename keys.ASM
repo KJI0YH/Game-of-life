@@ -13,3 +13,10 @@ proc GridVisible
 	xor	[GRID_VISIBLE], 1
 	ret
 endp
+
+; Set / unset generation pause
+proc GenerationPause uses ebx esi edi
+
+	xor	[GEN_PAUSE], 1
+	ret
+endp
