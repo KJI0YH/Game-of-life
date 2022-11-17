@@ -38,17 +38,30 @@ endp
 proc MouseMove uses ebx esi edi,\
      wParam, lParam
 
-	cmp    [wParam], DRAG_BUTTON
-	jne	.EndProc
+	locals
+		x	dd	?
+		y	dd	?
+	endl
 
+	 ; X coordinate of the cursor
+	stdcall GET_X_LPARAM, [lParam]
+	mov	[x], eax
+
+	 ; Y coordinate of the cursor
+	stdcall GET_Y_LPARAM, [lParam]
+	mov	[y], eax
+
+	mov	eax, [wParam]
+	JumpIf	DRAG_BUTTON,	.Drag
+	JumpIf	FILL_BUTTON,	.Fill
+	jmp	.EndProc
+
+.Drag:
 	; Dragging
 	mov	ecx, [cellSize]
 
 .XShift:
-
-	 ; X coordinate of the cursor
-	stdcall GET_X_LPARAM, [lParam]
-	mov	esi, eax
+	mov	esi, [x]
 
 	; Check X shift
 	sub	esi, [clickPosX]	; esi - mouse x delta
@@ -56,15 +69,25 @@ proc MouseMove uses ebx esi edi,\
 	add	[colPixelShift], esi
 
 .YShift:
-
-	 ; Y coordinate of the cursor
-	stdcall GET_Y_LPARAM, [lParam]
-	mov	edi, eax
+	mov	edi, [y]
 
 	; Check Y shift
 	sub	edi, [clickPosY]	; edi - mouse y delta
 	add	[clickPosY], edi
 	add	[rowPixelShift], edi
+	jmp	.EndProc
+
+.Fill:
+
+	stdcall MouseToField, [y], [rowScreenBegin], [rowPixelShift]
+	mov	edi, eax
+	stdcall MouseToField, [x], [colScreenBegin], [colPixelShift]
+	mov	esi, eax
+	stdcall GetCell, edi, esi, [hCells]
+	test	eax, eax
+	jnz	.EndProc
+	stdcall SetCell, edi, esi, [hCells]
+	jmp	.EndProc
 
 .EndProc:
 
