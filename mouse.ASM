@@ -104,6 +104,22 @@ proc MButtonUp uses ebx esi edi,\
 	ret
 endp
 
+; Changing the cell state
+proc LButtonDown uses ebx esi edi,\
+     wParam, lParam
+
+	stdcall GET_X_LPARAM, [lParam]
+	stdcall MouseToField, eax, [colScreenBegin], [colPixelShift]
+	mov	esi, eax
+
+	stdcall GET_Y_LPARAM, [lParam]
+	stdcall MouseToField, eax, [rowScreenBegin], [rowPixelShift]
+
+	stdcall SetCell, eax, esi, [hCells]
+	ret
+
+endp
+
 ; Save cursor icon when moving
 proc SetCursorMove uses ebx esi edi,\
      wParam, lParam
@@ -163,6 +179,32 @@ proc NormalizeAfterMouse uses ebx esi edi
 	lea	esi, [colScreenBegin]
 	stdcall NormalizeCoord, esi, [wFieldCellCount]
 
+	ret
+
+endp
+
+; Convert mouse position (x or y) to field position
+; IN:
+;	mousePos - mouse coordinate to convert
+;	screenBegin - row or col that the screen begin with
+;	pixelShift - shift in pixel from top left corner
+; OUT:
+;	not normalized field coordinate
+proc MouseToField uses ebx esi edi,\
+     mousePos, screenBegin, pixelShift
+
+	mov	eax, [screenBegin]
+	mov	esi, [mousePos]
+	sub	esi, [pixelShift]
+	cmp	esi, 0
+	jle	.EndProc
+
+.loop:
+	sub	esi, [cellSize]
+	inc	eax
+	cmp	esi, 0
+	jg	.loop
+.EndProc:
 	ret
 
 endp

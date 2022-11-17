@@ -117,6 +117,7 @@ proc WindowProc uses ebx,\
 	jmp	.ReturnZero
 
 .LButtonDown:
+	stdcall LButtonDown, [wParam], [lParam]
 	jmp	.ReturnZero
 
 .MButtonDown:
