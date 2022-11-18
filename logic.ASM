@@ -17,10 +17,8 @@ proc CreateField uses ebx esi edi,\
 
 	mov	eax, [hCellCount]
 	mov	[hFieldCellCount], eax
-	dec	[hFieldCellCount]
 	mov	ebx, [wCellCount]
 	mov	[wFieldCellCount], ebx
-	dec	[wFieldCellCount]
 
 	; Calculate amount of memory that we need
 	mul	ebx
@@ -165,54 +163,99 @@ proc NextGeneration uses ebx esi edi,\
     hCells, hBackCells
 
 	locals
-		vShift	dd	?
-		hShift	dd	?
+		row	dd	0
+		col	dd	0
+		lShift	dd	?
+		rShift	dd	?
+		tShift	dd	?
+		bShift	dd	?
+		h	dd	?
+		w	dd	?
 		pos	dd	?
 	endl
+	mov	eax, [wFieldCellCount]
+	dec	eax
+	mov	[w], eax
+	mov	eax, [hFieldCellCount]
+	dec	eax
+	mov	[h], eax
 
-	mov	esi, 1
+	xor	esi, esi
 .ByRows:
 	push	esi
-	mov	edi, 1
+	xor	edi, edi
+	mov	[col], edi
 .ByCols:
-	pop	esi
-	mov	eax, esi
-	push	esi
 	push	edi
+	mov	eax, [row]
+
 	mul	[wFieldCellCount]
 	add	eax, edi		; eax - normal cell shift
-;	 mov	 [pos], eax
 
 	mov	edi, [hBackCells]
-	add	edi, eax		; edi - address of the cell
+	add	edi, eax		; edi - address of the cell in back buffer cells
 
 	mov	esi, [hCells]
 	add	esi, eax		; esi - address of the cell
 
-	xor	ebx, ebx
+	; Calculate bottom shift for cell neighbours
+	mov	eax, [wFieldCellCount]
+	mov	ebx, [h]
+	cmp	[row], ebx
+	jne	@F
+	sub	eax, [cellsBufferSize]
+@@:
+	mov	[bShift], eax
+
+	; Calculate top shift for cell neighbours
 	mov	eax, [wFieldCellCount]
 	neg	eax
+	cmp	[row], 0
+	jne	@F
+	add	eax, [cellsBufferSize]
+@@:
+	mov	[tShift], eax
 
-	; cmp if row == 0 then eax += H*W else
-	; cmp if row == H then eax -= H*W
-	; cmp if col == 0 then eax += W
-	; cmp if col == W then eax -= W
+	; Calculate left shift for cell neighbours
+	mov	eax, -1
+	cmp	[col], 0
+	jne	@F
+	add	eax, [wFieldCellCount]
+@@:
+	mov	[lShift], eax
 
-.Top:
+	; Calculate right shift for cell neighbours
+	mov    eax, 1
+	mov    ebx, [w]
+	cmp    [col], ebx
+	jne    @F
+	sub    eax, [wFieldCellCount]
+@@:
+	mov	[rShift], eax
+
+	xor	ebx, ebx
+
 	; Top neighbours
-	add	bl, byte [esi + eax - 1]
-	add	bl, byte [esi + eax]
-	add	bl, byte [esi + eax + 1]
+	add	eax, [tShift]
+	add	bl, byte [esi + eax]		; top-right
+	mov	eax, [tShift]
+	add	bl, byte [esi + eax]		; top
+	add	eax, [lShift]
+	add	bl, byte [esi + eax]		; top-left
 
 	; Middle neighbours
-	add	bl, byte [esi - 1]
-	add	bl, byte [esi + 1]
+	mov	eax, [lShift]
+	add	bl, byte [esi + eax]		; left
+	mov	eax, [rShift]
+	add	bl, byte [esi + eax]		; right
 
 	; Bottom neighbours
-	neg	eax
-	add	bl, byte [esi + eax - 1]
+	add	eax, [bShift]			; bottom-right
 	add	bl, byte [esi + eax]
-	add	bl, byte [esi + eax + 1]
+	mov	eax, [bShift]
+	add	bl, byte [esi + eax]		; bottom
+	add	eax, [lShift]
+	add	bl, byte [esi + eax]		; bottom-left
 
 	mov	al, byte [esi]
 	test	al, al
@@ -236,11 +279,13 @@ proc NextGeneration uses ebx esi edi,\
 .EndCycle:
 	pop	edi
 	inc	edi
+	mov	[col], edi
 	cmp	edi, [wFieldCellCount]
 	jl	.ByCols
 
 	pop	esi
 	inc	esi
+	mov	[row], esi
 	cmp	esi, [hFieldCellCount]
 	jl	.ByRows
 

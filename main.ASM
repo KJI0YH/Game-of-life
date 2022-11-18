@@ -53,12 +53,6 @@ proc WinMain
 	stdcall CreateField, [clientRect.bottom], [clientRect.right]
 ;	 stdcall CreateField, 9, 16
 
-;	 stdcall SetCell, 3, 6, [hCells]
- ;	 stdcall SetCell, 4, 7, [hCells]
-  ;	 stdcall SetCell, 5, 7, [hCells]
-   ;	 stdcall SetCell, 5, 6, [hCells]
-    ;	 stdcall SetCell, 5, 5, [hCells]
-
 	stdcall SetCell, 5, 5, [hCells]
 	stdcall SetCell, 5, 6, [hCells]
 	stdcall SetCell, 5, 7, [hCells]
