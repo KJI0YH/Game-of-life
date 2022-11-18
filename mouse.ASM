@@ -1,8 +1,11 @@
 oldCursor	dd	?
 dragCursor	dd	?
 
-clickPosX	dd	?
-clickPosY	dd	?
+mClickX 	dd	?
+mClickY 	dd	?
+
+lClickX 	dd	?
+lClickY 	dd	?
 
 ; Zoom field with mouse wheel
 proc MouseWheel uses ebx esi edi,\
@@ -53,7 +56,8 @@ proc MouseMove uses ebx esi edi,\
 
 	mov	eax, [wParam]
 	JumpIf	FIELD_DRAG_BUTTON,    .Drag
-	JumpIf	FILL_DRAG_BUTTON,     .Fill
+	JumpIf	FILL,		      .FillClear
+	JumpIf	CLEAR,		      .FillClear
 	jmp	.EndProc
 
 .Drag:
@@ -64,36 +68,46 @@ proc MouseMove uses ebx esi edi,\
 	mov	esi, [x]
 
 	; Check X shift
-	sub	esi, [clickPosX]	; esi - mouse x delta
-	add	[clickPosX], esi
+	sub	esi, [mClickX]	      ; esi - mouse x delta
+	add	[mClickX], esi
 	add	[colPixelShift], esi
 
 .YShift:
 	mov	edi, [y]
 
 	; Check Y shift
-	sub	edi, [clickPosY]	; edi - mouse y delta
-	add	[clickPosY], edi
+	sub	edi, [mClickY]	      ; edi - mouse y delta
+	add	[mClickY], edi
 	add	[rowPixelShift], edi
-	jmp	.Normalize
 
-.Fill:
+	; Normalizing pixel shifts and screen begin cells
+	stdcall NormalizeAfterMouse
+	jmp	.EndProc
+
+.FillClear:
+
 	stdcall MouseToField, [y], [rowScreenBegin], [rowPixelShift]
 	mov	edi, eax
 	stdcall MouseToField, [x], [colScreenBegin], [colPixelShift]
+
 	mov	esi, eax
 	stdcall GetCell, edi, esi, [hCells]
+
+	cmp	[wParam], CLEAR
+	je	.Clear
+
+.Fill:
 	test	eax, eax
-	jne	.EndProc
+	jnz	.EndProc
+	jmp	.Set
+
+.Clear:
+	test	eax, eax
+	jz	.EndProc
+
+.Set:
 	stdcall SetCell, edi, esi, [hCells]
-	jmp	.EndProc
-
-.Normalize:
-	; Normalizing pixel shifts and screen begin cells
-	stdcall NormalizeAfterMouse
-
 .EndProc:
-
 	ret
 endp
 
@@ -103,11 +117,11 @@ proc MButtonDown uses ebx esi edi,\
 
 	; X coordinate of the click
 	stdcall GET_X_LPARAM, [lParam]
-	mov	[clickPosX], eax
+	mov	[mClickX], eax
 
 	; Y coordinate of the click
 	stdcall GET_Y_LPARAM, [lParam]
-	mov	[clickPosY], eax
+	mov	[mClickY], eax
 
 	invoke LoadCursor, 0, IDC_CROSS
 	mov    [dragCursor], eax
@@ -132,13 +146,32 @@ proc LButtonDown uses ebx esi edi,\
      wParam, lParam
 
 	stdcall GET_X_LPARAM, [lParam]
+	mov	[lClickX], eax
 	stdcall MouseToField, eax, [colScreenBegin], [colPixelShift]
 	mov	esi, eax
 
 	stdcall GET_Y_LPARAM, [lParam]
+	mov	[lClickY], eax
 	stdcall MouseToField, eax, [rowScreenBegin], [rowPixelShift]
+	mov	edi, eax
 
-	stdcall SetCell, eax, esi, [hCells]
+	stdcall GetCell, edi, esi, [hCells]
+	cmp	[wParam], CLEAR
+	je	.Clear
+
+.Fill:
+	test	eax, eax
+	jnz	.EndProc
+	jmp	.Set
+
+.Clear:
+	test	eax, eax
+	jz	.EndProc
+
+.Set:
+	stdcall SetCell, edi, esi, [hCells]
+
+.EndProc:
 	ret
 
 endp
