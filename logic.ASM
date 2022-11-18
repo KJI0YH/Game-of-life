@@ -258,25 +258,15 @@ proc NextGeneration uses ebx esi edi,\
 	add	bl, byte [esi + eax]		; bottom-left
 
 	mov	al, byte [esi]
-	test	al, al
-	jz	.Dead
-
-.Alive:
-	cmp	ebx, 3
-	jg	.Zero
-	cmp	ebx, 2
-	jl	.Zero
-	mov	byte [edi], 1
-	jmp	.EndCycle
-.Dead:
-	cmp	ebx, 3
-	jne	 .Zero
-	mov	byte [edi], 1
-	jmp	.EndCycle
-.Zero:
-	mov	byte [edi], 0
+	or	al, bl
+	xor	bl, bl
+	cmp	al, 3
+	jne	.EndCycle
+	mov	bl, 1
 
 .EndCycle:
+	mov	byte [edi], bl
+
 	pop	edi
 	inc	edi
 	mov	[col], edi
