@@ -5,12 +5,14 @@ entry WinMain
 	include 	"api\user32.inc"
 	include 	"api\kernel32.inc"
 	include 	"api\gdi32.inc"
+	include 	"api\comdlg32.inc"
 
 data import
 
 	library kernel32,	"KERNEL32.DLL",\
 		user32, 	"USER32.DLL",\
-		gdi32,		"GDI32.DLL"
+		gdi32,		"GDI32.DLL",\
+		comdlg32,	"COMDLG32.DLL"
 
 end data
 
@@ -20,4 +22,5 @@ end data
 	include 	"keys.asm"
 	include 	"logic.asm"
 	include 	"settings.asm"
+	include 	"files.asm"
 

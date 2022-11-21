@@ -1,4 +1,4 @@
-drawFreq	=	15
+drawFreq	=	10
 prevTime	dd	?
 
 stepFreq	=	50

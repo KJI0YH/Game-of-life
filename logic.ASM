@@ -1,6 +1,6 @@
-hHeap		     dd      ?
-hCells		     dd      ?
-hBackCells	     dd      ?
+hHeap		     dd      0
+hCells		     dd      0
+hBackCells	     dd      0
 hFieldCellCount      dd      ?
 wFieldCellCount      dd      ?
 cellsBufferSize      dd      ?
@@ -29,6 +29,24 @@ proc CreateField uses ebx esi edi,\
 	invoke HeapAlloc, [hHeap], HEAP_ZERO_MEMORY, [cellsBufferSize]
 	mov    [hBackCells], eax
 	ret
+endp
+
+; Free memory for game field
+proc DestroyField uses ebx esi edi
+
+	cmp	[hHeap], 0
+	je	.EndProc
+
+	cmp	[hCells], 0
+	je	@F
+	invoke	HeapFree, [hHeap], 0, [hCells]
+@@:
+	cmp	[hBackCells], 0
+	je	.EndProc
+	invoke	HeapFree, [hHeap], 0, [hBackCells]
+.EndProc:
+	ret
+
 endp
 
 ; Change cell on the field

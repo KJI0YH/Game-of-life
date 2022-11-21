@@ -1,6 +1,6 @@
 include 	"main.inc"
 
-wndClass	 WNDCLASS	 0, WindowProc, 0, 0, 0, 0, 0, 0, 0, className
+wndClass	WNDCLASS	0, WindowProc, 0, 0, 0, 0, 0, 0, 0, className
 WINDOW_STYLE	=		 WS_VISIBLE + WS_MAXIMIZE + WS_POPUP
 className	db		"Game of life", 0
 clientRect	RECT
@@ -130,6 +130,8 @@ proc WindowProc uses ebx,\
 	JumpIf	VK_ESCAPE,	.Destroy
 	JumpIf	0x43,		..ShowCursor  ; C key
 	JumpIf	0x47,		..ShowGrid    ; G key
+	JumpIf	0x4F,		..OpenFile    ; O key
+	JumpIf	0x53,		..SaveFile    ; S key
 	JumpIf	0x20,		..Pause       ; Space key
 	jmp	.Default
 
@@ -141,12 +143,21 @@ proc WindowProc uses ebx,\
 	stdcall GridVisible
 	jmp	.ReturnZero
 
+..OpenFile:
+	stdcall FileOpen, [hWnd]
+	jmp	.ReturnZero
+
+..SaveFile:
+	stdcall FileSave, [hWnd]
+	jmp	.ReturnZero
+
 ..Pause:
 	stdcall GenerationPause
 	jmp	.ReturnZero
 
 .Destroy:
 	stdcall DeleteBrushes
+	stdcall DestroyField
 	invoke	ExitProcess, ebx
 
 .ReturnZero:
