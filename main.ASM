@@ -132,6 +132,7 @@ proc WindowProc uses ebx,\
 	JumpIf	0x47,		..ShowGrid    ; G key
 	JumpIf	0x4F,		..OpenFile    ; O key
 	JumpIf	0x53,		..SaveFile    ; S key
+	JumpIf	0x46,		..ShowFrame   ; F key
 	JumpIf	0x20,		..Pause       ; Space key
 	jmp	.Default
 
@@ -141,6 +142,10 @@ proc WindowProc uses ebx,\
 
 ..ShowGrid:
 	stdcall GridVisible
+	jmp	.ReturnZero
+
+..ShowFrame:
+	stdcall FrameVisible
 	jmp	.ReturnZero
 
 ..OpenFile:

@@ -13,6 +13,7 @@ colPixelShift	dd	0
 hbrBack 	dd	?
 hbrAlive	dd	?
 hbrDead 	dd	?
+hbrFrame	dd	?
 
 proc Draw uses ebx esi edi,\
      hWnd, hdcBack, clientRect
@@ -45,17 +46,17 @@ proc Draw uses ebx esi edi,\
 	; Clear client rectangle
 	invoke	FillRect, [hdcBack], clientRect.left, [hbrBack]
 
-	; Draw grid
-	cmp    [GRID_VISIBLE], 1
-	jne    .DrawCells
-
-.DrawGrid:
-	stdcall DrawGrid, [hdcBack], clientRect.left, [cellSize]
-
 .DrawCells:
 
 	; Draw cell
 	stdcall DrawCells, [hdcBack], [hCells]
+
+	; Draw grid
+	cmp    [GRID_VISIBLE], 1
+	jne    .SkipDraw
+
+.DrawGrid:
+	stdcall DrawGrid, [hdcBack], clientRect.left, [cellSize]
 
 .SkipDraw:
 	lea	esi, [ps]
@@ -138,6 +139,8 @@ proc CreateBrushes uses ebx esi edi
 	mov	[hbrAlive], eax
 	invoke	CreateSolidBrush, colorDead
 	mov	[hbrDead], eax
+	invoke	CreateSolidBrush, colorFrame
+	mov	[hbrFrame], eax
 	ret
 endp
 
@@ -148,6 +151,7 @@ proc DeleteBrushes uses ebx esi edi
 	invoke	DeleteObject, [hbrBack]
 	invoke	DeleteObject, [hbrAlive]
 	invoke	DeleteObject, [hbrDead]
+	invoke	DeleteObject, [hbrFrame]
 	ret
 endp
 
@@ -185,13 +189,22 @@ proc DrawCells uses ebx esi edi,\
 	mov	[cellRect.right], ebx
 
 .ByCols:
+	lea	ebx, [cellRect.left]
 
+	; Draw frame
+	cmp	[FRAME_VISIBLE], 1
+	jne	.GetCell
+	stdcall IsFrame, edi, esi
+	cmp	eax, 0
+	je	.GetCell
+	invoke	FillRect, [hdcBack], ebx, [hbrFrame]
+
+.GetCell:
 	stdcall GetCell, edi, esi, [hCells]
 	cmp	eax, 0
 	je	.SkipDraw
 
 	; Draw cell if is alive
-	lea	ebx, [cellRect.left]
 	invoke	FillRect, [hdcBack], ebx, [hbrAlive]
 
 .SkipDraw:
@@ -237,6 +250,36 @@ proc DrawCells uses ebx esi edi,\
 	jl	.ByRows
 
 	ret
+endp
+
+; Check frame cell
+; IN:
+;	row - row of the cell
+;	col - col of the cell
+; OUT:
+;	return 0 if is not a frame, else return not zero
+proc IsFrame uses ebx esi edi,\
+     row, col
+
+	mov	eax, [hFieldCellCount]
+	mov	esi, [row]
+	mov	edi, [col]
+
+	cmp	esi, 0
+	je	.EndProc
+	cmp	esi, eax
+	je	.EndProc
+
+	cmp	edi, 0
+	je	.EndProc
+	mov	eax, [wFieldCellCount]
+	cmp	edi, eax
+	je	.EndProc
+
+	xor	eax, eax
+.EndProc:
+	ret
+
 endp
 
 

@@ -20,3 +20,10 @@ proc GenerationPause uses ebx esi edi
 	xor	[GEN_PAUSE], 1
 	ret
 endp
+
+; Change frame visibility
+proc FrameVisible uses ebx esi edi
+
+	xor	[FRAME_VISIBLE], 1
+	ret
+endp
