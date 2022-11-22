@@ -134,6 +134,7 @@ proc WindowProc uses ebx,\
 	JumpIf	0x53,		..SaveFile    ; S key
 	JumpIf	0x46,		..ShowFrame   ; F key
 	JumpIf	0x20,		..Pause       ; Space key
+	JumpIf	VK_RETURN,	..NextGen     ; Enter key
 	jmp	.Default
 
 ..ShowCursor:
@@ -158,6 +159,15 @@ proc WindowProc uses ebx,\
 
 ..Pause:
 	stdcall GenerationPause
+	jmp	.ReturnZero
+
+..NextGen:
+	cmp	[GEN_PAUSE], 1
+	jne	.ReturnZero
+	stdcall NextGeneration, [hCells], [hBackCells]
+	mov	esi, [hCells]
+	xchg	esi, [hBackCells]
+	xchg	esi, [hCells]
 	jmp	.ReturnZero
 
 .Destroy:
