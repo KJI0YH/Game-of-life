@@ -135,6 +135,8 @@ proc WindowProc uses ebx,\
 	JumpIf	0x46,		..ShowFrame   ; F key
 	JumpIf	0x20,		..Pause       ; Space key
 	JumpIf	VK_RETURN,	..NextGen     ; Enter key
+	JumpIf	0xBB,		..IncSpeed    ; + key
+	JumpIf	0xBD,		..DecSpeed    ; - key
 	jmp	.Default
 
 ..ShowCursor:
@@ -168,6 +170,14 @@ proc WindowProc uses ebx,\
 	mov	esi, [hCells]
 	xchg	esi, [hBackCells]
 	xchg	esi, [hCells]
+	jmp	.ReturnZero
+
+..IncSpeed:
+	stdcall IncSpeed
+	jmp	.ReturnZero
+
+..DecSpeed:
+	stdcall DecSpeed
 	jmp	.ReturnZero
 
 .Destroy:

@@ -10,6 +10,9 @@ colorAlive		=	00_00_00_00h
 colorDead		=	00_FF_FF_FFh
 colorFrame		=	00_00_00_FFh
 
+drawFreq		=	10
+stepFreq		dd	50
+speedStep		=	20
 defaultCellCount	=	9
 
 cellSize		dd	?

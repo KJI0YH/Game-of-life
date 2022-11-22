@@ -27,3 +27,23 @@ proc FrameVisible uses ebx esi edi
 	xor	[FRAME_VISIBLE], 1
 	ret
 endp
+
+; Increase speed generation
+proc IncSpeed uses ebx esi edi
+
+	sub	[stepFreq], speedStep
+	cmp	[stepFreq], drawFreq
+	jge	.EndProc
+	mov	[stepFreq], drawFreq
+.EndProc:
+	ret
+
+endp
+
+; Decrease speed generation
+proc DecSpeed uses ebx esi edi
+
+	add	[stepFreq], speedStep
+	ret
+
+endp

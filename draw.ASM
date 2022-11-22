@@ -1,9 +1,5 @@
-drawFreq	=	10
 prevTime	dd	?
-
-stepFreq	=	50
 prevStep	dd	?
-
 
 rowScreenBegin	dd	0
 colScreenBegin	dd	0
@@ -24,6 +20,7 @@ proc Draw uses ebx esi edi,\
 
 	xor	ebx, ebx
 
+	; Check draw frequency
 	invoke GetTickCount
 	sub    eax, [prevTime]
 	cmp    eax, drawFreq
@@ -31,8 +28,16 @@ proc Draw uses ebx esi edi,\
 	add    eax, [prevTime]
 	mov    [prevTime], eax
 
+	; Check step frequency
 	cmp	[GEN_PAUSE], 1
-	je     .SkipGeneration
+	je	.SkipGeneration
+	invoke	GetTickCount
+	sub	eax, [prevStep]
+	cmp	eax, [stepFreq]
+	jb	.SkipGeneration
+	add	eax, [prevStep]
+	mov	[prevStep], eax
+
 	stdcall NextGeneration, [hCells], [hBackCells]
 	mov	esi, [hCells]
 	xchg	esi, [hBackCells]
