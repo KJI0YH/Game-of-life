@@ -32,7 +32,7 @@ proc FileSave uses ebx esi edi,\
 	cmp	eax, INVALID_HANDLE_VALUE
 	je	.EndProc
 
-	stdcall WriteField, [hFile]
+	stdcall WriteRLE, [hFile]
 
 	invoke	CloseHandle, [hFile]
 	mov	[bSuccess], 1
@@ -43,52 +43,142 @@ proc FileSave uses ebx esi edi,\
 
 endp
 
-; Write game field to the file
+; Write game field to the file with RLE encoding
 ; IN:
 ;	hFile - handle to the file to write
-proc WriteField uses ebx esi edi,\
+proc WriteRLE uses edx esi edi,\
      hFile
 
 	locals
-		row	dw	?
-		col	dw	?
+		row		dd	0
+		col		dd	0
+		char		db	?
+		x		db	"x = "
+		y		db	", y = "
+		CRLF		db	0x0D, 0x0A
+		END_LINE	db	0
 	endl
 
-	; write field size
-	lea	esi, [hFieldCellCount]
+; Write header to a file
+.Header:
+	lea	esi, [x]
+	invoke	WriteFile, [hFile], esi, 4, 0, 0
+	mov	eax, [wFieldCellCount]
+	dec	eax
+	stdcall WriteNumber, [hFile], eax
+	lea	esi, [y]
+	invoke	WriteFile, [hFile], esi, 6, 0, 0
+	mov	eax, [hFieldCellCount]
+	dec	eax
+	stdcall WriteNumber, [hFile], eax
+	lea	esi, [CRLF]
 	invoke	WriteFile, [hFile], esi, 2, 0, 0
-	lea	esi, [wFieldCellCount]
-	invoke	WriteFile, [hFile], esi, 2, 0, 0
-	mov	esi, [hCells]
 
-	mov	ebx, [hFieldCellCount]
-	dec	ebx
-	mov	[row], bx
-	mov	ebx, [wFieldCellCount]
-	dec	ebx
-	mov	[col], bx
-	mov	ecx, [cellsBufferSize]
-.StartLoop:
-	mov	al, byte [esi + ecx - 1]
+	mov	esi, [hCells]
+	lea	edi, [char]
+	xor	ecx, ecx
+
+.WriteBody:
+	xor	ebx, ebx
+	movzx	eax, byte [esi + ecx]	; byte to compare
+	mov	edx, [wFieldCellCount]
+
+.Count:
+	cmp	al, byte [esi + ecx]
+	jne	.EndCount
+	inc	ebx
+	inc	ecx
+	cmp	ecx, [cellsBufferSize]
+	je	.EndProc
+
+	inc	[col]
+	cmp	[col], edx
+	jl	.Count
+
+	mov	[col], 0
+	inc	[row]
 	cmp	al, 0
-	je	.EndLoop
-	lea	edi, [row]
+	jne	.EndCount
+	mov	[END_LINE], 1
+	jmp	.EndLine
+
+.EndCount:
+	cmp	al, 1
+	je	.Alive
+.Dead:
+	mov	[char], 'b'
+	jmp	.Number
+
+.Alive:
+	mov	[char], 'o'
+
+.Number:
+	cmp	ebx, 1
+	jle	.Cell
 	push	ecx
-	invoke	WriteFile, [hFile], edi, 2, 0, 0
-	lea	edi, [col]
-	invoke	WriteFile, [hFile], edi, 2, 0, 0
+	stdcall WriteNumber, [hFile], ebx
 	pop	ecx
 
-.EndLoop:
-	dec	[col]
-	cmp	[col], 0
-	jge	@F
-	dec	[row]
-	mov	[col], bx
-@@:
-	loop	.StartLoop
+.Cell:
+	push	ecx
+	invoke	WriteFile, [hFile], edi, 1, 0, 0
+	pop	ecx
+
+	cmp	[END_LINE], 1
+	jne	.EndWriteBody
+
+.EndLine:
+	mov	[char], '$'
+	push	ecx
+	invoke	WriteFile, [hFile], edi, 1, 0, 0
+	pop	ecx
+	mov	[END_LINE], 0
+
+.EndWriteBody:
+	cmp	ecx, [cellsBufferSize]
+	jl	.WriteBody
+
+.EndProc:
+	mov	[char], '!'
+	invoke	WriteFile, [hFile], edi, 1, 0, 0
 	ret
 
+endp
+
+; Convert number to a string and write it to a file
+; IN:
+;	hFile - handle to the file to write
+;	number - number for convert
+proc WriteNumber uses ebx esi edi,\
+     hFile, number
+
+	locals
+		char	db	?
+	endl
+
+.Digit:
+	mov	ebx, 10
+	mov	eax, [number]
+	xor	ecx, ecx
+.DivLoop:
+	inc	ecx
+	xor	edx, edx
+	div	ebx
+	add	edx, '0'
+	push	edx
+	test	eax, eax
+	jnz	.DivLoop
+
+	lea	esi, [char]
+.WriteLoop:
+	pop	eax
+	mov	[char], al
+	push	ecx
+	invoke	WriteFile, [hFile], esi, 1, 0, 0
+	pop	ecx
+	loop	.WriteLoop
+
+	ret
 endp
 
 ; Call Open file dialog and read game field from the file
@@ -158,12 +248,12 @@ proc ReadRLE uses ebx esi edi,\
 	jmp	.Read
 
 .CreateField:
-	mov	edx, [wFieldCellCount]
+	mov	edx, [clientRect.right]
 	cmp	edx, [x]
 	jl	@F
 	mov	[x], edx
 @@:
-	mov	edx, [hFieldCellCount]
+	mov	edx, [clientRect.bottom]
 	cmp	edx, [y]
 	jl	@F
 	mov	[y], edx
@@ -330,15 +420,3 @@ proc ReadRLE uses ebx esi edi,\
 	ret
 
 endp
-
-
-
-
-
-
-
-
-
-
-
-
