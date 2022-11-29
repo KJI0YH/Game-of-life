@@ -48,8 +48,8 @@ proc WinMain
 	; Init settings
 	stdcall SetCellSize, clientRect.left, defaultCellCount
 	stdcall CreateBrushes
-;	 stdcall CreateField, [clientRect.bottom], [clientRect.right]
-	stdcall CreateField, 9, 16
+	stdcall CreateField, [clientRect.bottom], [clientRect.right]
+;	 stdcall CreateField, 9, 16
 
 	stdcall SetCell, 5, 5, [hCells]
 	stdcall SetCell, 5, 6, [hCells]

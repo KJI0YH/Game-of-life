@@ -65,10 +65,9 @@ proc Draw uses ebx esi edi,\
 	stdcall DrawGrid, [hdcBack], clientRect.left, [cellSize]
 
 	; Draw frame
+.DrawFrame:
 	cmp	[FRAME_VISIBLE], 1
 	jne	.SkipDraw
-
-.DrawFrame:
 	stdcall DrawFieldFrame, [hdcBack]
 
 .SkipDraw:
@@ -316,21 +315,21 @@ proc DrawCells uses ebx esi edi,\
 	jz	.EndRows
 	lea	eax, [cellRect.left]
 	invoke	FillRect, [hdcBack], eax, [hbrAlive]
-.EndRows:
-	mov	eax, [cellRect.bottom]
-	mov	[cellRect.top], eax
-	add	eax, [cellSize]
-	mov	[cellRect.bottom], eax
 
+.EndRows:
 	inc	esi
 	cmp	esi, [hFieldCellCount]
 	jl	@F
 	mov	esi, 0
 @@:
+	mov	eax, [cellRect.bottom]
+	mov	[cellRect.top], eax
+	add	eax, [cellSize]
+	mov	[cellRect.bottom], eax
 
 	mov	eax, [clientRect.bottom]
-	cmp	[cellRect.bottom], eax
-	jle	.ByRows
+	cmp	[cellRect.top], eax
+	jl	.ByRows
 
 	ret
 endp
