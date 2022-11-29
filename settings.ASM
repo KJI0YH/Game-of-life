@@ -9,6 +9,11 @@ colorBack		=	00_FF_FF_FFh
 colorAlive		=	00_00_00_00h
 colorDead		=	00_FF_FF_FFh
 colorFrame		=	00_00_00_FFh
+colorGridA		=	00_00_00_00h
+colorGridB		=	00_7F_7F_7Fh
+widthGridA		=	2
+widthGridB		=	1
+widthFrame		=	5
 
 drawFreq		=	10
 stepFreq		dd	50

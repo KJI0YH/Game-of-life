@@ -8,6 +8,9 @@ hbrBack 	dd	?
 hbrAlive	dd	?
 hbrDead 	dd	?
 hbrFrame	dd	?
+hpnGridA	dd	?
+hpnGridB	dd	?
+hpnFrame	dd	?
 
 proc Draw uses ebx esi edi,\
      hWnd, hdcBack, clientRect
@@ -56,10 +59,17 @@ proc Draw uses ebx esi edi,\
 
 	; Draw grid
 	cmp    [GRID_VISIBLE], 1
-	jne    .SkipDraw
+	jne    .DrawFrame
 
 .DrawGrid:
 	stdcall DrawGrid, [hdcBack], clientRect.left, [cellSize]
+
+	; Draw frame
+	cmp	[FRAME_VISIBLE], 1
+	jne	.SkipDraw
+
+.DrawFrame:
+	stdcall DrawFieldFrame, [hdcBack]
 
 .SkipDraw:
 	lea	esi, [ps]
@@ -82,22 +92,100 @@ proc DrawGrid uses ebx esi edi,\
 
 	; Draw grid rows
 	xor    edi, edi
+	mov    esi, [rowScreenBegin]
 .Rows:
+	mov	ebx, [hpnGridB]
+	test	esi, 0111b
+	jnz	@F
+	mov	ebx, [hpnGridA]
+@@:
+	invoke	SelectObject, [hdcBack], ebx
 	invoke	MoveToEx, [hdcBack], 0, edi, 0
 	invoke	LineTo, [hdcBack], [clientRect.right], edi
+
+	inc	esi
 	add	edi, [cellSize]
 	cmp	edi, [clientRect.bottom]
 	jl	.Rows
 
 	; Draw grid cols
 	xor    edi, edi
+	mov    esi, [colScreenBegin]
 .Cols:
+	mov	ebx, [hpnGridB]
+	test	esi, 0111b
+	jnz	@F
+	mov	ebx, [hpnGridA]
+@@:
+	invoke	SelectObject, [hdcBack], ebx
 	invoke	MoveToEx, [hdcBack], edi, 0, 0
 	invoke	LineTo, [hdcBack], edi, [clientRect.bottom]
+
+	inc	esi
 	add	edi, [cellSize]
 	cmp	edi, [clientRect.right]
 	jl	.Cols
 
+	ret
+endp
+
+; Draw frame
+; IN:
+;	hdcBack - back buffer for drawing
+proc DrawFieldFrame uses ebx esi edi,\
+     hdcBack
+
+	invoke	SelectObject, [hdcBack], [hpnFrame]
+
+.Col:
+	mov	eax, [cellSize]
+	mov	ebx, [wFieldCellCount]
+	mul	ebx
+	mov	esi, eax
+
+	xor	edi, edi
+	cmp	[colScreenBegin], 0
+	je	.ColLoop
+
+	mov	ebx, [wFieldCellCount]
+	sub	ebx, [colScreenBegin]
+	mov	eax, [cellSize]
+	mul	ebx
+	mov	edi, eax
+
+.ColLoop:
+	cmp	edi, [clientRect.right]
+	jg	.Row
+	invoke	MoveToEx, [hdcBack], edi, 0, 0
+	invoke	LineTo, [hdcBack], edi, [clientRect.bottom]
+	add	edi, esi
+	jmp	.ColLoop
+
+.Row:
+	mov	eax, [cellSize]
+	mov	ebx, [hFieldCellCount]
+	mul	ebx
+	mov	esi, eax
+
+	xor	edi, edi
+	cmp	[rowScreenBegin], 0
+	je	.RowLoop
+
+	mov	ebx, [hFieldCellCount]
+	sub	ebx, [rowScreenBegin]
+	mov	eax, [cellSize]
+	mul	ebx
+	mov	edi, eax
+
+.RowLoop:
+	cmp	edi, [clientRect.bottom]
+	jg	.EndProc
+	invoke	MoveToEx, [hdcBack], 0, edi, 0
+	invoke	LineTo, [hdcBack], [clientRect.right], edi
+	add	edi, esi
+	jmp	.RowLoop
+
+.EndProc:
 	ret
 endp
 
@@ -144,6 +232,12 @@ proc CreateBrushes uses ebx esi edi
 	mov	[hbrDead], eax
 	invoke	CreateSolidBrush, colorFrame
 	mov	[hbrFrame], eax
+	invoke	CreatePen, PS_SOLID, widthGridA, colorGridA
+	mov	[hpnGridA], eax
+	invoke	CreatePen, PS_SOLID, widthGridB, colorGridB
+	mov	[hpnGridB], eax
+	invoke	CreatePen, PS_SOLID, widthFrame, colorFrame
+	mov	[hpnFrame], eax
 	ret
 endp
 
@@ -155,6 +249,9 @@ proc DeleteBrushes uses ebx esi edi
 	invoke	DeleteObject, [hbrAlive]
 	invoke	DeleteObject, [hbrDead]
 	invoke	DeleteObject, [hbrFrame]
+	invoke	DeleteObject, [hpnGridA]
+	invoke	DeleteObject, [hpnGridB]
+	invoke	DeleteObject, [hpnFrame]
 	ret
 endp
 
