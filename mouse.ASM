@@ -20,20 +20,13 @@ proc MouseWheel uses ebx esi edi,\
 	jle	 .EndProc
 
 	dec	 [cellSize]
-	dec	 [rowPixelShift]
-	dec	 [colPixelShift]
 
 	jmp	.EndProc
 
 .ZoomOut:
 	inc	[cellSize]
-	inc	[rowPixelShift]
-	inc	[colPixelShift]
 
 .EndProc:
-
-	; Normalizing pixel shifts and screen begin cells
-	stdcall NormalizeAfterMouse
 
 	ret
 endp
@@ -69,26 +62,22 @@ proc MouseMove uses ebx esi edi,\
 
 	; Check X shift
 	sub	esi, [mClickX]	      ; esi - mouse x delta
-	add	[mClickX], esi
-	add	[colPixelShift], esi
 
 .YShift:
 	mov	edi, [y]
 
 	; Check Y shift
 	sub	edi, [mClickY]	      ; edi - mouse y delta
-	add	[mClickY], edi
-	add	[rowPixelShift], edi
 
 	; Normalizing pixel shifts and screen begin cells
-	stdcall NormalizeAfterMouse
+	stdcall NormalizeAfterMouse, esi, edi
 	jmp	.EndProc
 
 .FillClear:
 
-	stdcall MouseToField, [y], [rowScreenBegin], [rowPixelShift]
+	stdcall MouseToField, [y], [rowScreenBegin]
 	mov	edi, eax
-	stdcall MouseToField, [x], [colScreenBegin], [colPixelShift]
+	stdcall MouseToField, [x], [colScreenBegin]
 
 	mov	esi, eax
 	stdcall GetCell, edi, esi, [hCells]
@@ -149,12 +138,12 @@ proc LButtonDown uses ebx esi edi,\
 
 	stdcall GET_X_LPARAM, [lParam]
 	mov	[lClickX], eax
-	stdcall MouseToField, eax, [colScreenBegin], [colPixelShift]
+	stdcall MouseToField, eax, [colScreenBegin]
 	mov	esi, eax
 
 	stdcall GET_Y_LPARAM, [lParam]
 	mov	[lClickY], eax
-	stdcall MouseToField, eax, [rowScreenBegin], [rowPixelShift]
+	stdcall MouseToField, eax, [rowScreenBegin]
 	mov	edi, eax
 
 	stdcall GetCell, edi, esi, [hCells]
@@ -216,26 +205,83 @@ proc GET_Y_LPARAM uses ebx esi edi,\
 
 endp
 
-; Normalize pixel shifts and screen begin cell after mouse manipulations
-proc NormalizeAfterMouse uses ebx esi edi
-
-	; Normalizing row pixel shifts
-	lea	esi, [rowPixelShift]
-	stdcall NormalizePixelShift, esi, [cellSize]
-
-	; Normalizing row screen begin cell
-	add	[rowScreenBegin], eax
-	lea	esi, [rowScreenBegin]
-	stdcall NormalizeCoord, esi, [hFieldCellCount]
-
-	; Normalizing col pixel shifts
-	lea	esi, [colPixelShift]
-	stdcall NormalizePixelShift, esi, [cellSize]
+; Normalize screen begin cell after mouse manipulations
+; IN:
+;	xDelta - mouse delta by x axe
+;	yDelta - mouse delta by y axe
+proc NormalizeAfterMouse uses ebx esi edi,\
+     xDelta, yDelta
 
 	; Normalizing col screen begin cell
-	add	[colScreenBegin], eax
+	mov	      ebx, [xDelta]
+	cmp	      ebx, 0
+	jg	      .xGreater
+
+.xLess:
+	neg	ebx
+	cmp	ebx, [cellSize]
+	jl	.xNormalize
+
+.xLessLoop:
+	sub	ebx, [cellSize]
+	inc	[colScreenBegin]
+	cmp	ebx, 0
+	jg	.xLessLoop
+	jmp	.MClickX
+
+.xGreater:
+	cmp	ebx, [cellSize]
+	jl	.xNormalize
+
+.xGreaterLoop:
+	sub	ebx, [cellSize]
+	dec	[colScreenBegin]
+	cmp	ebx, 0
+	jg	.xGreaterLoop
+
+.MClickX:
+	mov	ebx, [xDelta]
+	add	[mClickX], ebx
+	jmp	.xNormalize
+
+.xNormalize:
 	lea	esi, [colScreenBegin]
 	stdcall NormalizeCoord, esi, [wFieldCellCount]
+
+	; Normalizing row screen begin cell
+	mov	      ebx, [yDelta]
+	cmp	      ebx, 0
+	jg	      .yGreater
+
+.yLess:
+	neg	ebx
+	cmp	ebx, [cellSize]
+	jl	.yNormalize
+
+.yLessLoop:
+	sub	ebx, [cellSize]
+	inc	[rowScreenBegin]
+	cmp	ebx, 0
+	jg	.yLessLoop
+	jmp	.MClickY
+
+.yGreater:
+	cmp	ebx, [cellSize]
+	jl	.yNormalize
+
+.yGreaterLoop:
+	sub	ebx, [cellSize]
+	dec	[rowScreenBegin]
+	cmp	ebx, 0
+	jg	.yGreaterLoop
+
+.MClickY:
+	mov	ebx, [yDelta]
+	add	[mClickY], ebx
+
+.yNormalize:
+	lea	esi, [rowScreenBegin]
+	stdcall NormalizeCoord, esi, [hFieldCellCount]
 
 	ret
 
@@ -249,18 +295,17 @@ endp
 ; OUT:
 ;	not normalized field coordinate
 proc MouseToField uses ebx esi edi,\
-     mousePos, screenBegin, pixelShift
+     mousePos, screenBegin
 
 	mov	eax, [screenBegin]
 	mov	esi, [mousePos]
-	sub	esi, [pixelShift]
-	cmp	esi, 0
+	cmp	esi, [cellSize]
 	jle	.EndProc
 
 .loop:
 	sub	esi, [cellSize]
 	inc	eax
-	cmp	esi, 0
+	cmp	esi, [cellSize]
 	jg	.loop
 .EndProc:
 	ret

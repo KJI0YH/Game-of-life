@@ -47,11 +47,9 @@ proc WinMain
 
 	; Init settings
 	stdcall SetCellSize, clientRect.left, defaultCellCount
-	mov	[rowPixelShift], eax
-	mov	[colPixelShift], eax
 	stdcall CreateBrushes
-	stdcall CreateField, [clientRect.bottom], [clientRect.right]
-;	 stdcall CreateField, 9, 16
+;	 stdcall CreateField, [clientRect.bottom], [clientRect.right]
+	stdcall CreateField, 9, 16
 
 	stdcall SetCell, 5, 5, [hCells]
 	stdcall SetCell, 5, 6, [hCells]

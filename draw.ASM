@@ -3,8 +3,6 @@ prevStep	dd	?
 
 rowScreenBegin	dd	0
 colScreenBegin	dd	0
-rowPixelShift	dd	0
-colPixelShift	dd	0
 
 hbrBack 	dd	?
 hbrAlive	dd	?
@@ -83,7 +81,7 @@ proc DrawGrid uses ebx esi edi,\
      hdcBack
 
 	; Draw grid rows
-	mov	edi, [rowPixelShift]
+	xor    edi, edi
 .Rows:
 	invoke	MoveToEx, [hdcBack], 0, edi, 0
 	invoke	LineTo, [hdcBack], [clientRect.right], edi
@@ -92,7 +90,7 @@ proc DrawGrid uses ebx esi edi,\
 	jl	.Rows
 
 	; Draw grid cols
-	mov    edi, [colPixelShift]
+	xor    edi, edi
 .Cols:
 	invoke	MoveToEx, [hdcBack], edi, 0, 0
 	invoke	LineTo, [hdcBack], edi, [clientRect.bottom]
@@ -171,120 +169,73 @@ proc DrawCells uses ebx esi edi,\
 		cellRect	RECT
 	endl
 
+	; Set initial cell rectangle
 	mov	[cellRect.top], 0
-	mov	ebx, [rowPixelShift]
-	cmp	ebx, 0
-	jne	@F
-	mov	ebx, [cellSize]
+	mov	eax, [cellSize]
+	mov	[cellRect.bottom], eax
 
-@@:
-	mov	[cellRect.bottom], ebx
-	mov	edi, [rowScreenBegin]
-
+	mov	esi, [rowScreenBegin]
 .ByRows:
-	mov	esi, [colScreenBegin]
+	mov	edi, [colScreenBegin]
 
-	; Set initial left and right cell rectangle
-	mov	[cellRect.left], 0
-	mov	ebx, [colPixelShift]
-	cmp	ebx, 0
-	jne	@F
-	mov	ebx, [cellSize]
-@@:
+	xor	ebx, ebx
+	mov	[cellRect.left], ebx
+	mov	eax, [cellSize]
 	mov	[cellRect.right], ebx
 
 .ByCols:
-	lea	ebx, [cellRect.left]
+	stdcall GetCell, esi, edi, [hCells]
+	test	eax, eax
+	jz	.DeadCell
 
-	; Draw frame
-	cmp	[FRAME_VISIBLE], 1
-	jne	.GetCell
-	stdcall IsFrame, edi, esi
-	cmp	eax, 0
-	je	.GetCell
-	invoke	FillRect, [hdcBack], ebx, [hbrFrame]
+	mov	eax, [cellSize]
+	add	[cellRect.right], eax
+	mov	ebx, 1
+	jmp	.EndCols
 
-.GetCell:
-	stdcall GetCell, edi, esi, [hCells]
-	cmp	eax, 0
-	je	.SkipDraw
-
-	; Draw cell if is alive
-	invoke	FillRect, [hdcBack], ebx, [hbrAlive]
-
-.SkipDraw:
-
-	; Modify left and right cell borders
-	mov	ebx, [cellRect.right]
-	mov	[cellRect.left], ebx
-	add	ebx, [cellSize]
-	cmp	ebx, [clientRect.right]
-	jle	@F
-	mov	ebx, [clientRect.right]
-
+.DeadCell:
+	test	ebx, ebx
+	jz	@F
+	lea	eax, [cellRect.left]
+	invoke	FillRect, [hdcBack], eax, [hbrAlive]
+	xor	ebx, ebx
 @@:
-	mov	[cellRect.right], ebx
+	mov	eax, [cellRect.right]
+	add	eax, [cellSize]
+	mov	[cellRect.left], eax
+	mov	[cellRect.right], eax
 
-	; Modify col count
-	inc	esi
-	cmp	esi, [wFieldCellCount]
-	jl	@F
-	mov	esi, 0
-@@:
-	; Check cols condition
-	cmp	[cellRect.left], ebx
-	jl	.ByCols
-
-	; Modify top and bottom cell borders
-	mov	ebx, [cellRect.bottom]
-	mov	[cellRect.top], ebx
-	add	ebx, [cellSize]
-	cmp	ebx, [clientRect.bottom]
-	jle	@F
-	mov	ebx, [clientRect.bottom]
-@@:
-	mov	[cellRect.bottom], ebx
-
+.EndCols:
 	inc	edi
-	cmp	edi, [hFieldCellCount]
+	cmp	edi, [wFieldCellCount]
 	jl	@F
 	mov	edi, 0
 @@:
-	; Check rows condition
-	cmp	[cellRect.top], ebx
-	jl	.ByRows
+	mov	eax, [clientRect.right]
+	cmp	[cellRect.right], eax
+	jl	.ByCols
+
+	test	ebx, ebx
+	jz	.EndRows
+	lea	eax, [cellRect.left]
+	invoke	FillRect, [hdcBack], eax, [hbrAlive]
+.EndRows:
+	mov	eax, [cellRect.bottom]
+	mov	[cellRect.top], eax
+	add	eax, [cellSize]
+	mov	[cellRect.bottom], eax
+
+	inc	esi
+	cmp	esi, [hFieldCellCount]
+	jl	@F
+	mov	esi, 0
+@@:
+
+	mov	eax, [clientRect.bottom]
+	cmp	[cellRect.bottom], eax
+	jle	.ByRows
 
 	ret
-endp
-
-; Check frame cell
-; IN:
-;	row - row of the cell
-;	col - col of the cell
-; OUT:
-;	return 0 if is not a frame, else return not zero
-proc IsFrame uses ebx esi edi,\
-     row, col
-
-	mov	eax, [hFieldCellCount]
-	mov	esi, [row]
-	mov	edi, [col]
-
-	cmp	esi, 0
-	je	.EndProc
-	cmp	esi, eax
-	je	.EndProc
-
-	cmp	edi, 0
-	je	.EndProc
-	mov	eax, [wFieldCellCount]
-	cmp	edi, eax
-	je	.EndProc
-
-	xor	eax, eax
-.EndProc:
-	ret
-
 endp
 
 
