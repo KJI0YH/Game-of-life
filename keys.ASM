@@ -47,3 +47,16 @@ proc DecSpeed uses ebx esi edi
 	ret
 
 endp
+
+; Clear game field
+proc ClearField uses ebx esi edi
+
+	mov	[GEN_PAUSE], 1
+	mov	ecx, [cellsBufferSize]
+	mov	edi, [hCells]
+	cld
+	xor	eax, eax
+	repnz	stosb
+	ret
+
+endp

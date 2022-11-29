@@ -133,6 +133,7 @@ proc WindowProc uses ebx,\
 	JumpIf	0x4F,		..OpenFile    ; O key
 	JumpIf	0x53,		..SaveFile    ; S key
 	JumpIf	0x46,		..ShowFrame   ; F key
+	JumpIf	0x44,		..DeleteField ; D key
 	JumpIf	0x20,		..Pause       ; Space key
 	JumpIf	VK_RETURN,	..NextGen     ; Enter key
 	JumpIf	0xBB,		..IncSpeed    ; + key
@@ -149,6 +150,10 @@ proc WindowProc uses ebx,\
 
 ..ShowFrame:
 	stdcall FrameVisible
+	jmp	.ReturnZero
+
+..DeleteField:
+	stdcall ClearField
 	jmp	.ReturnZero
 
 ..OpenFile:

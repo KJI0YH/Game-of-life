@@ -145,6 +145,8 @@ endp
 proc LButtonDown uses ebx esi edi,\
      wParam, lParam
 
+	mov	[GEN_PAUSE], 1
+
 	stdcall GET_X_LPARAM, [lParam]
 	mov	[lClickX], eax
 	stdcall MouseToField, eax, [colScreenBegin], [colPixelShift]
