@@ -28,6 +28,12 @@ proc CreateField uses ebx esi edi,\
 	mov    [hCells], eax
 	invoke HeapAlloc, [hHeap], HEAP_ZERO_MEMORY, [cellsBufferSize]
 	mov    [hBackCells], eax
+
+	mov	[rowScreenBegin], 0
+	mov	[colScreenBegin], 0
+	mov	ebx, [cellSize]
+	mov	[rowPixelShift], ebx
+	mov	[colPixelShift], ebx
 	ret
 endp
 
