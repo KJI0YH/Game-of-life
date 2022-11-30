@@ -136,6 +136,10 @@ proc WindowProc uses ebx,\
 	JumpIf	VK_RETURN,	..NextGen     ; Enter key
 	JumpIf	0xBB,		..IncSpeed    ; + key
 	JumpIf	0xBD,		..DecSpeed    ; - key
+	JumpIf	VK_LEFT,	..Arrow        ; left key
+	JumpIf	VK_UP,		..Arrow        ; up key
+	JumpIf	VK_DOWN,	..Arrow        ; down key
+	JumpIf	VK_RIGHT,	..Arrow        ; right key
 	jmp	.Default
 
 ..ShowCursor:
@@ -181,6 +185,10 @@ proc WindowProc uses ebx,\
 
 ..DecSpeed:
 	stdcall DecSpeed
+	jmp	.ReturnZero
+
+..Arrow:
+	stdcall ArrowMove, [wParam]
 	jmp	.ReturnZero
 
 .Destroy:

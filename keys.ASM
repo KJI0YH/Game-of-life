@@ -60,3 +60,68 @@ proc ClearField uses ebx esi edi
 	ret
 
 endp
+
+; Move field by arrows
+; IN:
+;	vKey - pressed virtual key
+proc ArrowMove uses ebx esi edi,\
+     vKey
+
+	mov	ebx, 1
+	cmp	[cellSize], 30
+	jg	.Start
+	mov	ebx, 4
+	cmp	[cellSize], 10
+	jg	.Start
+	mov	ebx, 8
+	cmp	[cellSize], 1
+	jg	.Start
+	mov	ebx, 16
+
+
+
+.Start:
+	mov	eax, [vKey]
+	JumpIf	VK_UP,		.Up
+	JumpIf	VK_RIGHT,	.Right
+	JumpIf	VK_DOWN,	.Down
+	JumpIf	VK_LEFT,	.Left
+
+.Up:
+	sub	[rowScreenBegin], ebx
+	jmp	.EndProc
+
+.Right:
+	add	[colScreenBegin], ebx
+	jmp	.EndProc
+
+.Down:
+	add	[rowScreenBegin], ebx
+	jmp	.EndProc
+
+.Left:
+	sub	[colScreenBegin], ebx
+	jmp	.EndProc
+
+.EndProc:
+	lea	eax, [rowScreenBegin]
+	stdcall NormalizeCoord, eax, [hFieldCellCount]
+	lea	eax, [colScreenBegin]
+	stdcall NormalizeCoord, eax, [wFieldCellCount]
+	ret
+endp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
