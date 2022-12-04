@@ -111,6 +111,20 @@ proc ArrowMove uses ebx esi edi,\
 	ret
 endp
 
+; Invert drawing colors
+proc InvertColors uses ebx esi edi
+
+	mov	eax, [hbrDead]
+	xchg	eax, [hbrAlive]
+	xchg	eax, [hbrDead]
+
+	mov	eax, [hpnGridAlive]
+	xchg	eax, [hpnGridDead]
+	xchg	eax, [hpnGridAlive]
+	ret
+
+endp
+
 
 
 

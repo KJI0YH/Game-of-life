@@ -4,12 +4,12 @@ prevStep	dd	?
 rowScreenBegin	dd	0
 colScreenBegin	dd	0
 
-hbrBack 	dd	?
 hbrAlive	dd	?
 hbrDead 	dd	?
 hbrFrame	dd	?
-hpnGridA	dd	?
-hpnGridB	dd	?
+hpnGridAlive	dd	?
+hpnGridDead	dd	?
+hpnGridSub	dd	?
 hpnFrame	dd	?
 
 proc Draw uses ebx esi edi,\
@@ -50,7 +50,7 @@ proc Draw uses ebx esi edi,\
 	jz	.EndProc
 
 	; Clear client rectangle
-	invoke	FillRect, [hdcBack], clientRect.left, [hbrBack]
+	invoke	FillRect, [hdcBack], clientRect.left, [hbrDead]
 
 .DrawCells:
 
@@ -93,10 +93,10 @@ proc DrawGrid uses ebx esi edi,\
 	xor    edi, edi
 	mov    esi, [rowScreenBegin]
 .Rows:
-	mov	ebx, [hpnGridB]
+	mov	ebx, [hpnGridSub]
 	test	esi, 0111b
 	jnz	@F
-	mov	ebx, [hpnGridA]
+	mov	ebx, [hpnGridAlive]
 @@:
 	invoke	SelectObject, [hdcBack], ebx
 	invoke	MoveToEx, [hdcBack], 0, edi, 0
@@ -111,10 +111,10 @@ proc DrawGrid uses ebx esi edi,\
 	xor    edi, edi
 	mov    esi, [colScreenBegin]
 .Cols:
-	mov	ebx, [hpnGridB]
+	mov	ebx, [hpnGridSub]
 	test	esi, 0111b
 	jnz	@F
-	mov	ebx, [hpnGridA]
+	mov	ebx, [hpnGridAlive]
 @@:
 	invoke	SelectObject, [hdcBack], ebx
 	invoke	MoveToEx, [hdcBack], edi, 0, 0
@@ -223,18 +223,18 @@ endp
 ; OUT:
 ;	create brushes for drawing
 proc CreateBrushes uses ebx esi edi
-	invoke	CreateSolidBrush, colorBack
-	mov	[hbrBack], eax
 	invoke	CreateSolidBrush, colorAlive
 	mov	[hbrAlive], eax
 	invoke	CreateSolidBrush, colorDead
 	mov	[hbrDead], eax
 	invoke	CreateSolidBrush, colorFrame
 	mov	[hbrFrame], eax
-	invoke	CreatePen, PS_SOLID, widthGridA, colorGridA
-	mov	[hpnGridA], eax
-	invoke	CreatePen, PS_SOLID, widthGridB, colorGridB
-	mov	[hpnGridB], eax
+	invoke	CreatePen, PS_SOLID, widthGridMain, colorAlive
+	mov	[hpnGridAlive], eax
+	invoke	CreatePen, PS_SOLID, widthGridMain, colorDead
+	mov	[hpnGridDead], eax
+	invoke	CreatePen, PS_SOLID, widthGridSub, colorGridSub
+	mov	[hpnGridSub], eax
 	invoke	CreatePen, PS_SOLID, widthFrame, colorFrame
 	mov	[hpnFrame], eax
 	ret
@@ -244,12 +244,12 @@ endp
 ;	delete brushes for drawing
 proc DeleteBrushes uses ebx esi edi
 
-	invoke	DeleteObject, [hbrBack]
 	invoke	DeleteObject, [hbrAlive]
 	invoke	DeleteObject, [hbrDead]
 	invoke	DeleteObject, [hbrFrame]
-	invoke	DeleteObject, [hpnGridA]
-	invoke	DeleteObject, [hpnGridB]
+	invoke	DeleteObject, [hpnGridAlive]
+	invoke	DeleteObject, [hpnGridDead]
+	invoke	DeleteObject, [hpnGridSub]
 	invoke	DeleteObject, [hpnFrame]
 	ret
 endp

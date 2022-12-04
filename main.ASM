@@ -49,11 +49,6 @@ proc WinMain
 	stdcall SetCellSize, clientRect.left, defaultCellCount
 	stdcall CreateBrushes
 	stdcall CreateField, [clientRect.bottom], [clientRect.right]
-;	 stdcall CreateField, 9, 16
-
-	stdcall SetCell, 5, 5, [hCells]
-	stdcall SetCell, 5, 6, [hCells]
-	stdcall SetCell, 5, 7, [hCells]
 
 	; Load effective address for the msg
 	lea	esi, [msg]
@@ -126,20 +121,21 @@ proc WindowProc uses ebx,\
 .KeyDown:
 	mov	eax, [wParam]
 	JumpIf	VK_ESCAPE,	.Destroy
-	JumpIf	0x43,		..ShowCursor  ; C key
-	JumpIf	0x47,		..ShowGrid    ; G key
-	JumpIf	0x4F,		..OpenFile    ; O key
-	JumpIf	0x53,		..SaveFile    ; S key
-	JumpIf	0x46,		..ShowFrame   ; F key
-	JumpIf	0x44,		..DeleteField ; D key
-	JumpIf	0x20,		..Pause       ; Space key
-	JumpIf	VK_RETURN,	..NextGen     ; Enter key
-	JumpIf	0xBB,		..IncSpeed    ; + key
-	JumpIf	0xBD,		..DecSpeed    ; - key
-	JumpIf	VK_LEFT,	..Arrow        ; left key
-	JumpIf	VK_UP,		..Arrow        ; up key
-	JumpIf	VK_DOWN,	..Arrow        ; down key
-	JumpIf	VK_RIGHT,	..Arrow        ; right key
+	JumpIf	0x43,		..ShowCursor	; C key
+	JumpIf	0x47,		..ShowGrid	; G key
+	JumpIf	0x4F,		..OpenFile	; O key
+	JumpIf	0x53,		..SaveFile	; S key
+	JumpIf	0x46,		..ShowFrame	; F key
+	JumpIf	0x44,		..DeleteField	; D key
+	JumpIf	0x49,		..InvertColors	; I key
+	JumpIf	0x20,		..Pause 	; Space key
+	JumpIf	VK_RETURN,	..NextGen	; Enter key
+	JumpIf	0xBB,		..IncSpeed	; + key
+	JumpIf	0xBD,		..DecSpeed	; - key
+	JumpIf	VK_LEFT,	..Arrow 	; left key
+	JumpIf	VK_UP,		..Arrow 	; up key
+	JumpIf	VK_DOWN,	..Arrow 	; down key
+	JumpIf	VK_RIGHT,	..Arrow 	; right key
 	jmp	.Default
 
 ..ShowCursor:
@@ -156,6 +152,10 @@ proc WindowProc uses ebx,\
 
 ..DeleteField:
 	stdcall ClearField
+	jmp	.ReturnZero
+
+..InvertColors:
+	stdcall InvertColors
 	jmp	.ReturnZero
 
 ..OpenFile:

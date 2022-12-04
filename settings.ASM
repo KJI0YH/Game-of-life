@@ -5,14 +5,12 @@ GEN_PAUSE		dd	1
 FRAME_VISIBLE		dd	0
 
 ; Drawing
-colorBack		=	00_FF_FF_FFh
 colorAlive		=	00_00_00_00h
 colorDead		=	00_FF_FF_FFh
 colorFrame		=	00_00_00_FFh
-colorGridA		=	00_00_00_00h
-colorGridB		=	00_80_80_30h
-widthGridA		=	2
-widthGridB		=	1
+colorGridSub		=	00_80_80_30h
+widthGridMain		=	2
+widthGridSub		=	1
 widthFrame		=	5
 
 drawFreq		=	10
