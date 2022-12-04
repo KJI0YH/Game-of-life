@@ -11,6 +11,21 @@ lClickY 	dd	?
 proc MouseWheel uses ebx esi edi,\
      wParam, lParam
 
+	locals
+		mx		dd	?
+		my		dd	?
+	endl
+
+	stdcall GET_X_LPARAM, [lParam]
+	mov	[mx], eax
+	stdcall MouseToField, eax, [colScreenBegin]
+	mov	esi, eax				; old col
+
+	stdcall GET_Y_LPARAM, [lParam]
+	mov	[my], eax
+	stdcall MouseToField, eax, [rowScreenBegin]
+	mov	edi, eax				; old row
+
 	mov	eax, [wParam]
 	test	eax, 80000000h
 	jz     .ZoomOut
@@ -21,13 +36,29 @@ proc MouseWheel uses ebx esi edi,\
 
 	dec	 [cellSize]
 
-	jmp	.EndProc
+	jmp	.FieldShift
 
 .ZoomOut:
 	inc	[cellSize]
 
-.EndProc:
+.FieldShift:
+	mov	eax, [mx]
+	xor	edx, edx
+	div	[cellSize]
+	mov	[colScreenBegin], esi
+	sub	[colScreenBegin], eax
+	lea	eax, [colScreenBegin]
+	stdcall NormalizeCoord, eax, [wFieldCellCount]
 
+	mov	eax, [my]
+	xor	edx, edx
+	div	[cellSize]
+	mov	[rowScreenBegin], edi
+	sub	[rowScreenBegin], eax
+	lea	eax, [rowScreenBegin]
+	stdcall NormalizeCoord, eax, [hFieldCellCount]
+
+.EndProc:
 	ret
 endp
 
