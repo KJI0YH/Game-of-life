@@ -24,3 +24,15 @@ end data
 	include 	"settings.asm"
 	include 	"files.asm"
 
+section '.rsrc' resource data readable
+
+IDI_ICON	=	1
+IDI_MAINGROUP	=	2
+
+	directory	RT_ICON,    icons,\
+			RT_GROUP_ICON, group_icons
+
+	resource icons, IDI_ICON, LANG_NEUTRAL, icon_data
+	resource  group_icons, IDI_MAINGROUP, LANG_NEUTRAL, main_icon
+	icon	 main_icon, icon_data, 'Ico\Glider.ico'
+

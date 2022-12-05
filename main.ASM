@@ -23,6 +23,9 @@ proc WinMain
 	invoke	LoadCursor, 0, IDC_HAND
 	mov	[wndClass.hCursor], eax
 
+	invoke	LoadIcon, [wndClass.hInstance], IDI_MAINGROUP
+	mov	[wndClass.hIcon], eax
+
 	; Register window class and create window
 	invoke RegisterClass, wndClass
 	invoke CreateWindowEx, ebx, className, className, WINDOW_STYLE,\
@@ -163,10 +166,12 @@ proc WindowProc uses ebx,\
 	jmp	.ReturnZero
 
 ..OpenFile:
+	mov	[GEN_PAUSE], 1
 	stdcall FileOpen, [hWnd]
 	jmp	.ReturnZero
 
 ..SaveFile:
+	mov	[GEN_PAUSE], 1
 	stdcall FileSave, [hWnd]
 	jmp	.ReturnZero
 
