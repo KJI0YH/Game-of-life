@@ -81,8 +81,9 @@ proc WindowProc uses ebx,\
 	JumpIf	WM_MOUSEWHEEL,	.MouseWheel
 	JumpIf	WM_MOUSEMOVE,	.MouseMove
 	JumpIf	WM_LBUTTONDOWN, .LButtonDown
-	JumpIf	WM_MBUTTONDOWN, .MButtonDown
-	JumpIf	WM_MBUTTONUP,	.MButtonUp
+	JumpIf	WM_LBUTTONUP,	.LButtonUp
+	JumpIf	WM_RBUTTONDOWN, .RButtonDown
+	JumpIf	WM_RBUTTONUP,	.RButtonUp
 	JumpIf	WM_SETCURSOR,	.SetCursor
 
 .Default:
@@ -105,18 +106,21 @@ proc WindowProc uses ebx,\
 	stdcall LButtonDown, [wParam], [lParam]
 	jmp	.ReturnZero
 
-.MButtonDown:
-	stdcall MButtonDown, [wParam], [lParam]
+.LButtonUp:
+	stdcall LButtonUp, [wParam], [lParam]
 	jmp	.ReturnZero
 
-.MButtonUp:
-	stdcall MButtonUp, [wParam], [lParam]
+.RButtonDown:
+	stdcall DragStart, [wParam], [lParam]
+	jmp	.ReturnZero
+
+.RButtonUp:
+	stdcall DragStop, [wParam], [lParam]
 	jmp	.ReturnZero
 
 .SetCursor:
 	stdcall SetCursorMove, [wParam], [lParam]
 	jmp	.ReturnZero
-
 
 .KeyDown:
 	mov	eax, [wParam]

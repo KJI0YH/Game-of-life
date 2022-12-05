@@ -1,8 +1,8 @@
 oldCursor	dd	?
 dragCursor	dd	?
 
-mClickX 	dd	?
-mClickY 	dd	?
+cClick		dd	?
+rClick		dd	?
 
 lClickX 	dd	?
 lClickY 	dd	?
@@ -31,6 +31,7 @@ proc MouseWheel uses ebx esi edi,\
 	ret
 endp
 
+; Processing mouse move
 proc MouseMove uses ebx esi edi,\
      wParam, lParam
 
@@ -48,29 +49,23 @@ proc MouseMove uses ebx esi edi,\
 	mov	[y], eax
 
 	mov	eax, [wParam]
-	JumpIf	FIELD_DRAG_BUTTON,    .Drag
+	JumpIf	TOUCH_DRAG,	      .Drag
+	JumpIf	MOUSE_DRAG,	      .Drag
 	JumpIf	FILL,		      .FillClear
 	JumpIf	CLEAR,		      .FillClear
 	jmp	.EndProc
 
 .Drag:
-	; Dragging
-	mov	ecx, [cellSize]
-
 .XShift:
-	mov	esi, [x]
-
-	; Check X shift
-	sub	esi, [mClickX]	      ; esi - mouse x delta
+	stdcall MouseToField, [x], [colScreenBegin]
+	mov	esi, eax
 
 .YShift:
-	mov	edi, [y]
+	stdcall MouseToField, [y], [rowScreenBegin]
+	mov	edi, eax
 
-	; Check Y shift
-	sub	edi, [mClickY]	      ; edi - mouse y delta
-
-	; Normalizing pixel shifts and screen begin cells
-	stdcall NormalizeAfterMouse, esi, edi
+	; Normalizing screen begin cells
+	stdcall MouseDragMove, esi, edi
 	jmp	.EndProc
 
 .FillClear:
@@ -101,16 +96,18 @@ proc MouseMove uses ebx esi edi,\
 endp
 
 ; Changing the cursor when start dragging
-proc MButtonDown uses ebx esi edi,\
+proc DragStart uses ebx esi edi,\
      wParam, lParam
 
 	; X coordinate of the click
 	stdcall GET_X_LPARAM, [lParam]
-	mov	[mClickX], eax
+	stdcall MouseToField, eax, [colScreenBegin]
+	mov	[cClick], eax
 
 	; Y coordinate of the click
 	stdcall GET_Y_LPARAM, [lParam]
-	mov	[mClickY], eax
+	stdcall MouseToField, eax, [rowScreenBegin]
+	mov	[rClick], eax
 
 	invoke LoadCursor, 0, IDC_CROSS
 	mov    [dragCursor], eax
@@ -122,7 +119,7 @@ proc MButtonDown uses ebx esi edi,\
 endp
 
 ; Changing the cursor back when stop dragging
-proc MButtonUp uses ebx esi edi,\
+proc DragStop uses ebx esi edi,\
      wParam, lParam
 
 	invoke	SetCursor, [oldCursor]
@@ -134,6 +131,12 @@ endp
 proc LButtonDown uses ebx esi edi,\
      wParam, lParam
 
+	cmp	[wParam], TOUCH_DRAG
+	jne	@F
+	stdcall DragStart, [wParam], [lParam]
+	jmp	.EndProc
+
+@@:
 	mov	[GEN_PAUSE], 1
 
 	stdcall GET_X_LPARAM, [lParam]
@@ -165,6 +168,15 @@ proc LButtonDown uses ebx esi edi,\
 .EndProc:
 	ret
 
+endp
+
+proc LButtonUp uses ebx esi edi,\
+     wParam, lParam
+	cmp	[DRAG], 1
+	jne	.EndProc
+	stdcall DragStop, [wParam], [lParam]
+.EndProc:
+	ret
 endp
 
 ; Save cursor icon when moving
@@ -203,6 +215,35 @@ proc GET_Y_LPARAM uses ebx esi edi,\
 	shr	eax, 16
 	ret
 
+endp
+
+; Normalize screen begin cell after mouse drag
+; IN:
+;	col - mouse col
+;	row - mouse row
+proc MouseDragMove uses ebx esi edi,\
+     col, row
+
+.Cols:
+	mov	esi, [col]
+	sub	esi, [cClick]
+	test	esi, esi
+	jz	.Rows
+	sub	[colScreenBegin], esi
+	lea	eax, [colScreenBegin]
+	stdcall NormalizeCoord, eax, [wFieldCellCount]
+
+.Rows:
+	mov	esi, [row]
+	sub	esi, [rClick]
+	test	esi, esi
+	jz	.EndProc
+	sub	[rowScreenBegin], esi
+	lea	eax, [rowScreenBegin]
+	stdcall NormalizeCoord, eax, [hFieldCellCount]
+
+.EndProc:
+	ret
 endp
 
 ; Normalize screen begin cell after mouse manipulations
