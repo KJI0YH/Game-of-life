@@ -1,4 +1,3 @@
-
 ; Change cursor visibility
 proc CursorVisible uses ebx esi edi
 

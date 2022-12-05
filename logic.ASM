@@ -103,51 +103,12 @@ proc GetCell uses ebx esi edi,\
 	ret
 endp
 
-; Normalize pixel shift
-; IN:
-;	pixelShift - shift in pixels to normalize
-;	cellSize - size of the cell in pixels
-; OUT:
-;	normalized pixel shift
-;	return shift by rows or cols
-proc NormalizePixelShift uses ebx esi edi,\
-     pixelShift, cellSize
-
-	xor	eax, eax
-	mov	esi, [pixelShift]
-
-	mov	ebx, [esi]
-	cmp	ebx, 0
-	jle	.NegativeShift
-	cmp	ebx, [cellSize]
-	jle	.EndProc
-
-.PositiveShift:
-	dec	eax
-	sub	ebx, [cellSize]
-	cmp	ebx, [cellSize]
-	jge	.PositiveShift
-	jmp	.EndProc
-
-.NegativeShift:
-	inc	eax
-	add	ebx, [cellSize]
-	cmp	ebx, 0
-	jl	.NegativeShift
-
-.EndProc:
-	mov	[esi], ebx
-	ret
-
-endp
-
 ; Normalize cell coordinate
 ; IN:
 ;	pCoord - pointer to cell coordinate (row or col) to normalize
 ;	fieldCellCount - max cell count
 ; OUT:
-;	normalized cell coord
-;	eax - normalized value
+;	normalized cell coord in eax
 proc NormalizeCoord uses ebx esi edi,\
      pCoord, fieldCellCount
 

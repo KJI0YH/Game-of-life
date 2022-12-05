@@ -1,3 +1,4 @@
+; Manage
 CURSOR_VISIBLE		dd	0
 GRID_VISIBLE		dd	1
 DRAG			dd	0
@@ -20,7 +21,6 @@ defaultCellCount	=	9
 
 cellSize		dd	?
 cellRect		RECT
-
 
 ; Mouse
 TOUCH_DRAG		=	MK_LBUTTON + MK_CONTROL
