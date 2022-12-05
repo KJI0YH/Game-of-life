@@ -38,7 +38,7 @@ where _<run_count>_ is the number of occurrences of _\<tag\>_ and _\<tag\>_ is o
 
 _<run_count>_ can be omitted if it is equal to 1. The last _<run_count>\<tag\>_ item is followed by a '!' character. Dead cells at the end of a pattern line do not need to be encoded.
 ## Example
-<img src="D:\BSUIR\5 sem\Operating systems and system programming\Course project\Images\glider.png" alt="Glider-image-example" style="zoom:33%;" />
+![Glider image](https://github.com/KJI0YH/Game-of-life/blob/main/Ico/Glider.ico)
 
 ```RLE
 #C This is a glider.
@@ -47,26 +47,26 @@ bo$2bo$3o!
 ```
 
 # Control
-## Keys 
-|  Key  | Description | Image |
-| :---: | :-------------------------------- | :------------------------: |
-|   C   | show/hide **c**ursor              |                                                              |
-|   G   | show/hide field **g**rid          | <img src="D:\BSUIR\5 sem\Operating systems and system programming\Course project\Images\grid.png" style="zoom:25%;" /><img src="D:\BSUIR\5 sem\Operating systems and system programming\Course project\Images\nogrid.png" alt="Hide field grid" style="zoom:25%;" /> |
-|   O   | **o**pen RLE file format          | <img src="D:\BSUIR\5 sem\Operating systems and system programming\Course project\Images\gospergun.png" style="zoom:25%;" /> |
-|   S   | **s**ave field to RLE file format |                                                              |
-|   F   | show/hide torus **f**rame         | <img src="D:\BSUIR\5 sem\Operating systems and system programming\Course project\Images\frame.png" style="zoom:25%;" /> |
-|   D   | **d**elete all field              |                                                              |
-|   I   | **i**nvert colors                 | <img src="D:\BSUIR\5 sem\Operating systems and system programming\Course project\Images\invert.png" alt="Invert colors image" style="zoom:25%;" /> |
-| Space | set/unset **pause**               |                                                              |
-| Enter | display the **next** generation   |                                                              |
-|   +   | **inc**rease generation speed     |                                                              |
-|   -   | **dec**rease generation speed     |                                                              |
-|   ^   | move **up** the field             |                                                              |
-|   >   | move **right** the field          |                                                              |
-|   <   | move **left** the field           |                                                              |
-|   v   | move **down** the field           |                                                              |
+## 1. Keys 
+|  Key  | Description | 
+| :---: | :-------------------------------- |
+|   C   | show/hide **c**ursor              | 
+|   G   | show/hide field **g**rid          | 
+|   O   | **o**pen RLE file format          | 
+|   S   | **s**ave field to RLE file format |      
+|   F   | show/hide torus **f**rame         | 
+|   D   | **d**elete all field              |      
+|   I   | **i**nvert colors                 |
+| Space | set/unset **pause**               |     
+| Enter | display the **next** generation   |                                                              
+|   +   | **inc**rease generation speed     |
+|   -   | **dec**rease generation speed     |
+|   ^   | move **up** the field             |
+|   >   | move **right** the field          |
+|   <   | move **left** the field           |
+|   v   | move **down** the field           |
 
-## Mouse
+## 2. Mouse
 | Action | Description |
 |:-------|:------------|
 | Left button | set alive cell |
