@@ -266,29 +266,3 @@ proc NextGeneration uses ebx esi edi,\
 endp
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

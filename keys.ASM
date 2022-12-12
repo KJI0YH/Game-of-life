@@ -123,18 +123,3 @@ proc InvertColors uses ebx esi edi
 	ret
 
 endp
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

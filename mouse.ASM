@@ -270,16 +270,3 @@ proc MouseToField uses ebx esi edi,\
 	ret
 
 endp
-
-
-
-
-
-
-
-
-
-
-
-
-

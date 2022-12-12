@@ -196,9 +196,10 @@ proc FileOpen uses ebx esi edi,\
 	mov	eax, [hWnd]
 	mov	[ofn.hwndOwner], eax
 
-	mov	[CURSOR_VISIBLE], 1
-	invoke	ShowCursor, [CURSOR_VISIBLE]
-
+	cmp	[CURSOR_VISIBLE], 0
+	jne	@F
+	stdcall CursorVisible
+@@:
 	lea	esi, [ofn]
 	invoke	GetOpenFileNameA, esi
 	cmp	eax, 0

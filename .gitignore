@@ -2,4 +2,6 @@
 *.json
 *.gol
 *.rle
+*.zip
 /Images/
+/Source code/
