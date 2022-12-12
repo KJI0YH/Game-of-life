@@ -38,7 +38,7 @@ where _<run_count>_ is the number of occurrences of _\<tag\>_ and _\<tag\>_ is o
 
 _<run_count>_ can be omitted if it is equal to 1. The last _<run_count>\<tag\>_ item is followed by a '!' character. Dead cells at the end of a pattern line do not need to be encoded.
 ## Example
-<img src="https://github.com/KJI0YH/Game-of-life/blob/main/Ico/Glider.ico" style="zoom:33%;" />
+![Glider image](https://github.com/KJI0YH/Game-of-life/blob/main/Ico/Glider.ico)
 
 ```RLE
 #C This is a glider.
@@ -47,18 +47,19 @@ bo$2bo$3o!
 ```
 
 # Control
-## Keys 
-|  Key  | Description |
+
+## 1. Keys 
+|  Key  | Description | 
 | :---: | :-------------------------------- |
-|   C   | show/hide **c**ursor              |
-|   G   | show/hide field **g**rid          |
-|   O   | **o**pen RLE file format          |
-|   S   | **s**ave field to RLE file format |
-|   F   | show/hide torus **f**rame         |
-|   D   | **d**elete all field              |
+|   C   | show/hide **c**ursor              | 
+|   G   | show/hide field **g**rid          | 
+|   O   | **o**pen RLE file format          | 
+|   S   | **s**ave field to RLE file format |      
+|   F   | show/hide torus **f**rame         | 
+|   D   | **d**elete all field              |      
 |   I   | **i**nvert colors                 |
-| Space | set/unset **pause**               |
-| Enter | display the **next** generation   |
+| Space | set/unset **pause**               |     
+| Enter | display the **next** generation   |                                                              
 |   +   | **inc**rease generation speed     |
 |   -   | **dec**rease generation speed     |
 |   ^   | move **up** the field             |
@@ -66,7 +67,7 @@ bo$2bo$3o!
 |   <   | move **left** the field           |
 |   v   | move **down** the field           |
 
-## Mouse
+## 2. Mouse
 | Action | Description |
 |:-------|:------------|
 | Left button | set alive cell |
